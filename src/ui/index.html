@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>整理</title>
+<!--
+  folder-tidy local web UI (T-003). Embedded in the binary and served by
+  `folder-tidy serve` on 127.0.0.1 only. Design reference: docs/mockup/index.html.
+  No external requests: fonts fall back to locally installed ones.
+-->
+<style>
+:root{
+  --ink:#1C1D1F;--muted:#5F6368;--muted2:#44474C;--line:#E2E2DD;--line2:#ECECE8;--line3:#F2F2EF;
+  --ground:#F4F4F1;--panel:#FBFBF9;--white:#FFFFFF;--blue:#2560D6;--blue-d:#1A47A3;--blue-soft:#E8F0FE;
+  --red:#A82D57;--red-soft:#FBE8EF;--mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:'Noto Sans TC','PingFang TC',system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+h1{margin:0 0 6px;font-size:26px;font-weight:700}
+h2{margin:0}
+p{margin:0}
+.sub{font-size:14px;color:var(--muted)}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:1 1 200px;max-width:100%;padding:24px 16px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 12px 20px;font-size:17px;font-weight:700}
+.navbtn{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;border-radius:8px;font-size:14px;text-align:left;background:transparent;cursor:pointer;transition:background 120ms}
+.navbtn:hover{background:var(--line2)}
+.navbtn.on{background:var(--blue-soft);color:var(--blue-d);font-weight:700}
+.navbtn:disabled{color:#6B6E73;cursor:default;background:transparent}
+.badge{margin-left:auto;font-size:12px;background:var(--blue);color:#fff;border-radius:10px;padding:1px 8px;font-weight:400}
+.sep{height:1px;background:var(--line);margin:12px 8px}
+main{flex:999 1 560px;min-width:0;padding:32px clamp(16px,4vw,48px) 48px}
+.page{max-width:960px;display:flex;flex-direction:column;gap:20px;animation:fadein 160ms ease-out both}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid #D6D6D0;border-radius:10px;background:var(--white);font-size:14px;cursor:pointer;transition:background 120ms,transform 80ms}
+.btn:hover{background:var(--line2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.primary{background:var(--blue);color:#fff;border:0;font-weight:700;padding:0 24px}
+.btn.primary:hover{background:var(--blue-d)}
+.btn.danger{background:var(--red);color:#fff;border:0;font-weight:700}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px}
+.icon{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;cursor:pointer;color:var(--muted2)}
+.icon:hover{background:rgba(20,20,19,.07)}
+.icon.del{color:var(--red)}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;min-height:130px;border-radius:12px;border:2px solid var(--line);background:var(--white);text-align:left;cursor:pointer;transition:border-color 120ms,box-shadow 120ms}
+.card:hover{box-shadow:0 2px 10px rgba(20,20,19,.08)}
+.card.on{border-color:var(--blue);background:#F5F8FF}
+.card:disabled{opacity:.6;cursor:default;box-shadow:none}
+.card .ic{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:var(--line3);color:var(--muted2)}
+.card.on .ic{background:var(--blue);color:#fff}
+.card .nm{font-size:16px;font-weight:700}
+.card .pt{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all}
+.card .nt{margin-top:auto;font-size:13px;color:var(--muted2)}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:12px}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line2)}
+.bar>div{transition:width 200ms}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.groups{display:flex;flex-direction:column;gap:12px}
+.group{background:var(--white);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ghead{display:flex;align-items:center;gap:4px;min-height:52px;padding-right:8px}
+.gtoggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 8px 0 16px;border:0;background:transparent;text-align:left;cursor:pointer}
+.gtoggle .chev{transition:transform 120ms;flex:none}
+.gtitle{flex:0 1 auto;max-width:60%;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcount{font-size:13px;color:var(--muted);flex:none}
+/* The note (target path) takes only the space left after the name and is
+   the one that truncates first, so a long path never hides the name. */
+.gnote{flex:1 1 0;min-width:0;text-align:right;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ghead .gcb{margin-left:16px;flex:none} /* .ghead: .cb below resets margin */
+.gcb-gap{width:34px;flex:none}
+.gcb + .gtoggle,.gcb-gap + .gtoggle{padding-left:4px}
+.gmove{flex:none;max-width:150px;min-height:32px;padding:0 6px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--muted);font-size:13px}
+.gedit{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 6px 16px}
+.gedit.confirm{background:var(--red-soft)}
+.gedit input{flex:1 1 180px;min-width:0;min-height:40px;padding:0 10px;border:2px solid var(--blue);border-radius:8px;font-size:15px;font-weight:700;background:#fff}
+.gbody{display:flex;flex-direction:column;border-top:1px solid var(--line2)}
+.empty{display:flex;align-items:center;gap:10px;padding:16px;margin:12px 16px;font-size:13px;color:var(--muted);border:2px dashed var(--line);border-radius:10px}
+.row{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 16px;min-height:56px;border-bottom:1px solid var(--line3);transition:background 100ms}
+.row:hover{background:#FAFAF8}
+.row .lead{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:12px}
+.cb{width:18px;height:18px;accent-color:var(--blue);flex:none;margin:0;cursor:pointer}
+.fname{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta.warn{color:var(--red)}
+.dest{min-height:36px;max-width:220px;padding:0 8px;border:1px solid transparent;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer}
+.dest.pending{border-color:#D9B24C}
+.tile{position:relative;width:42px;height:42px;flex:none;display:flex;justify-content:center}
+.tile .ext{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.02em;overflow:hidden}
+.th{width:42px;height:42px;flex:none;border-radius:6px;object-fit:cover;background:var(--line3);border:1px solid var(--line2)}
+.namebtn{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:transparent;padding:4px;margin:-4px;border-radius:8px;text-align:left;cursor:zoom-in}
+.namebtn:hover{background:rgba(37,96,214,.06)}
+.namebtn .eye{opacity:0;transition:opacity 100ms;flex:none}
+.namebtn:hover .eye,.namebtn:focus-visible .eye{opacity:1}
+.backdrop{position:fixed;inset:0;border:0;padding:0;background:rgba(20,20,19,.28);cursor:default}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(500px,100vw);background:#fff;box-shadow:-8px 0 32px rgba(20,20,19,.16);display:flex;flex-direction:column;animation:slidein 160ms ease-out both}
+.dhead{display:flex;align-items:center;gap:12px;padding:16px 12px 16px 24px;border-bottom:1px solid var(--line2)}
+.dbody{flex:1 1 auto;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
+.big{height:300px;flex:none;border-radius:12px;background:var(--line3);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.big img{max-width:100%;max-height:100%;object-fit:contain}
+.big pre{margin:0;width:100%;height:100%;padding:16px 20px;overflow:auto;background:#fff;font-family:var(--mono);font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.decide{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;background:var(--panel);border:1px solid var(--line2)}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;font-size:13px}
+dt{color:var(--muted)}dd{margin:0}
+.dfoot{display:flex;gap:8px;padding:12px 24px 20px;border-top:1px solid var(--line2)}
+.dfoot .btn{flex:1}
+.kbd{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;padding:0 24px 12px}
+.stagewrap{overflow-x:auto;border-radius:14px}
+.stage{position:relative;width:880px;height:440px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.flyer{position:absolute;width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;animation:fly 700ms cubic-bezier(.45,0,.25,1) both}
+.flyer span{max-width:72px;font-size:10px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bin{position:absolute;top:316px;height:100px;border-radius:12px;border:2px solid var(--line);background:#FAFAF8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 6px;transition:background 150ms,border-color 150ms,transform 150ms}
+.bin b{max-width:100%;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bin small{font-size:12px;color:var(--muted2)}
+.done{position:absolute;left:0;right:0;top:0;height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;animation:fadein 160ms ease-out both}
+.rules{display:flex;flex-wrap:wrap;overflow:hidden}
+.rlist{flex:1 1 200px;display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line2);background:var(--panel)}
+.rlist .navbtn.on{background:var(--line2);color:var(--ink)}
+.addcat{margin-top:8px;border:1px dashed #C9C9C2;justify-content:flex-start;background:transparent}
+.rform{flex:999 1 420px;min-width:0;padding:24px;display:flex;flex-direction:column;gap:20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lbl{font-size:13px;font-weight:500;color:var(--muted2)}
+.hint{font-size:12px;color:var(--muted)}
+.pathrow{display:flex;gap:8px}
+.pathrow .txt{flex:1;min-width:0}
+.txt{min-height:44px;padding:0 12px;border:1px solid #D6D6D0;border-radius:8px;font-family:var(--mono);font-size:14px;background:#fff}
+.txt.sm{min-height:36px;font-size:13px;padding:0 10px;border-radius:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:2px;padding-left:10px;border-radius:6px;background:var(--line3);font-size:13px}
+.chip.mono{font-family:var(--mono)}
+.chip.off{color:var(--muted);text-decoration:line-through}
+.chip button[data-act="toggleKw"]{width:auto;padding:0 8px;font-size:12px;text-decoration:none}
+.chip button{width:28px;height:28px;border:0;border-radius:6px;background:transparent;font-size:15px;cursor:pointer}
+.chip button:hover{background:rgba(20,20,19,.08)}
+.hist{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px}
+.hist .bar{flex:1 1 200px;height:10px}
+.alert{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:10px;background:var(--red-soft);color:var(--red);font-size:14px;margin-bottom:16px;max-width:960px}
+.alert span{flex:1;white-space:pre-wrap;word-break:break-word}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1}55%{transform:translate(calc(var(--dx) * .55),calc(var(--dy) * .55 - 70px)) scale(1.08) rotate(-6deg);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes slidein{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+.still .page,.drawer-open .drawer{animation:none}
+@media (prefers-reduced-motion:reduce){.flyer{animation:none;display:none}.page,.done,.drawer{animation:none}.bin,.btn,.bar>div{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+var PALETTE = [
+  { color: '#2560D6', soft: '#E8F0FE' }, { color: '#0A6E64', soft: '#E0F3EF' }, { color: '#6440B8', soft: '#EFEAFB' },
+  { color: '#A14C08', soft: '#FCEFE3' }, { color: '#A82D57', soft: '#FBE8EF' }, { color: '#3B6A1E', soft: '#EAF3E2' },
+  { color: '#1D5D88', soft: '#E3F0F8' }, { color: '#7A5200', soft: '#FFF3D6' }, { color: '#8A3B8F', soft: '#F6E7F7' },
+  { color: '#4A5560', soft: '#ECEFF2' }
+];
+var GRAY = { color: '#5F6368', soft: '#EEF0F2' };
+var NONE = '__none';
+var STEP = 80;
+var MAX_FLYERS = 24;
+var SOURCES = [
+  { id: 'desktop', name: '桌面', path: '~/Desktop', icon: 'desktop', note: '' },
+  { id: 'downloads', name: '下載', path: '~/Downloads', icon: 'download', note: '' },
+  { id: 'icloud', name: 'iCloud Drive', path: '~/Library/Mobile Documents/com~apple~CloudDocs', icon: 'cloud', note: '包含 iPhone 同步過來的檔案' },
+  { id: 'iphone', name: 'iPhone 主畫面', path: '透過 USB 連接', icon: 'phone', note: '之後提供', disabled: true }
+];
+
+// ---------- icons ----------
+function svg(d, size, extra) {
+  return '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + d + '</svg>';
+}
+var I = {
+  logo: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M8 13l3 3 5-6"></path>',
+  desktop: '<rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path>',
+  cloud: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"></path>',
+  phone: '<rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>',
+  preview: '<path d="M4 6h16M4 12h10M4 18h7"></path><path d="M17 15l2 2 3-4"></path>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle>',
+  clock: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path>',
+  chev: '<path d="M9 6l6 6-6 6"></path>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13M9 7V4h6v3"></path>',
+  newfolder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 10v6M9 13h6"></path>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"></path>',
+  close: '<path d="M6 6l12 12M18 6L6 18"></path>',
+  undo: '<path d="M9 14L4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path>',
+  plus: '<path d="M12 5v14M5 12h14"></path>',
+  check: '<circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6.5"></path>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle>',
+  left: '<path d="M15 6l-6 6 6 6"></path>',
+  right: '<path d="M9 6l6 6-6 6"></path>'
+};
+function folderIcon(color, w, h) {
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 24 20" aria-hidden="true" style="flex:none"><path d="M1 3a2 2 0 0 1 2-2h5l2 2h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" fill="' + color + '"></path></svg>';
+}
+function docIcon(c, w, h) {
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 34 42" aria-hidden="true"><path d="M1.5 1.5h21l10 10v29h-31z" fill="' + c.soft + '" stroke="' + c.color + '" stroke-width="1.5" stroke-linejoin="round"></path><path d="M22.5 1.5v10h10" fill="none" stroke="' + c.color + '" stroke-width="1.5" stroke-linejoin="round"></path></svg>';
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function basename(p) { var s = String(p).replace(/\/+$/, ''); return s.slice(s.lastIndexOf('/') + 1); }
+// The category a move landed in: its folder relative to the scanned root,
+// so nested names (工作/專案A) stay whole and keep their colour. A folder
+// outside the root (never planned) shows its full path rather than a guess.
+function destCategory(to, root) {
+  var s = String(to), dir = s.slice(0, s.lastIndexOf('/')), r = String(root).replace(/\/+$/, '');
+  return r && dir.indexOf(r + '/') === 0 ? dir.slice(r.length + 1) : dir;
+}
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  var u = ['KB', 'MB', 'GB', 'TB'], v = n, i = -1;
+  do { v /= 1024; i++; } while (v >= 1024 && i < u.length - 1);
+  return (v < 10 ? v.toFixed(1) : Math.round(v)) + ' ' + u[i];
+}
+function reducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+// ---------- state ----------
+var S = {
+  screen: 'source', source: 'desktop', dir: '~/Desktop', recursive: false,
+  data: null, error: null, busy: false,
+  // True only while POST /api/ai/suggest is in flight (busy covers every request).
+  aiBusy: false,
+  // Folder whose rename button gets focus after a rename is committed or
+  // cancelled (like pvReturn for the drawer); kept until that button exists.
+  renameReturn: null,
+  editing: null, draftName: '', confirmDel: null, collapsed: {}, created: {},
+  stage: null, history: null,
+  selCat: null, draftExt: '', draftKw: '', draftEx: '',
+  // Preview drawer: path of the open file, its large preview, and the list
+  // thumbnails that failed (shown as 無縮圖, not retried until a rescan).
+  // pvReturn: path whose list row gets focus back after the drawer closes.
+  pv: null, pvBig: null, pvFocus: false, pvReturn: null, thumbFail: {},
+  // 記住: path of the manually assigned file whose keyword is being edited.
+  remembering: null, draftRem: ''
+};
+var timer = null;
+
+function api(method, url, body) {
+  var opt = { method: method, headers: {} };
+  if (body !== undefined) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  return fetch(url, opt).then(function (r) {
+    return r.text().then(function (t) {
+      var j = null;
+      try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+      if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status + (t ? '：' + t : '')));
+      return j;
+    });
+  });
+}
+// Runs a request; any failure is shown in the error banner (never swallowed).
+function run(promise, then) {
+  S.busy = true; S.error = null; render();
+  return promise.then(function (j) { S.busy = false; if (then) then(j); render(); })
+    .catch(function (e) { S.busy = false; S.error = e.message; render(); });
+}
+function setData(j) { S.data = j; }
+function cfg() { return S.data ? S.data.config : { category: [], ai_exclude: [] }; }
+function cats() { return cfg().category || []; }
+function plan() { return S.data ? S.data.plan : null; }
+function colorOf(name) {
+  var ix = cats().map(function (c) { return c.name; }).indexOf(name);
+  return ix < 0 ? GRAY : PALETTE[ix % PALETTE.length];
+}
+function allFiles() { var p = plan(); return p ? [].concat.apply([], p.groups.map(function (g) { return g.files; })) : []; }
+function filesFor(name) { return allFiles().filter(function (f) { return f.dest === name; }); }
+function uniqueName(base, list) { var k = 1; var names = (list || cats()).map(function (c) { return c.name; }); while (names.indexOf(base + ' ' + k) >= 0) k++; return base + ' ' + k; }
+// Adds a folder named "<base> N". N is picked from the server's current
+// folders, not this page's copy, which can be stale (another tab, or an
+// earlier add whose answer has not arrived yet).
+function addNamed(base, then) {
+  var name;
+  run(api('GET', '/api/state').then(function (st) {
+    name = uniqueName(base, st.config.category || []);
+    return api('POST', '/api/folders', { name: name });
+  }), function (j) { setData(j); then(name); });
+}
+function cloneCfg() { return JSON.parse(JSON.stringify(cfg())); }
+function saveCfg(c) { run(api('PUT', '/api/config', c), setData); }
+function selCat() { var c = cats(); for (var i = 0; i < c.length; i++) if (c[i].name === S.selCat) return c[i]; return c[0] || null; }
+
+// ---------- preview drawer ----------
+// Thumbnails and text excerpts are made locally by the server (Quick Look)
+// and only for files of the current scan; nothing is sent anywhere.
+var THUMB_KINDS = { image: true, pdf: true, video: true };
+function thumbUrl(f, size) {
+  return '/api/thumbnail?path=' + encodeURIComponent(f.path) + '&size=' + size + '&v=' + encodeURIComponent(f.size + '-' + f.modified);
+}
+function fileByPath(p) { var a = allFiles(); for (var i = 0; i < a.length; i++) if (a[i].path === p) return a[i]; return null; }
+
+// List thumbnails load through a small queue instead of plain <img src>:
+// a browser opens at most 6 connections per host, and a Quick Look run that
+// hangs holds its request until the server's timeout (504). Six of those
+// would leave no connection for 確認搬移 or any other API call, so at most
+// MAX_THUMB_FETCHES load at once. They load in off-DOM Image objects, which
+// survive re-renders; the row shows a placeholder until its image is in the
+// browser cache, then a plain <img> of the same URL.
+var MAX_THUMB_FETCHES = 4;
+var thumbQueue = [], thumbLoading = 0, thumbState = {}; // url -> 'queued' | 'loading' | 'ok'
+function queueThumb(f, url) {
+  if (thumbState[url]) return;
+  thumbState[url] = 'queued';
+  thumbQueue.push({ path: f.path, url: url });
+  pumpThumbs();
+}
+function pumpThumbs() {
+  while (thumbLoading < MAX_THUMB_FETCHES && thumbQueue.length) loadThumb(thumbQueue.shift());
+}
+function loadThumb(item) {
+  thumbLoading++;
+  thumbState[item.url] = 'loading';
+  var im = new Image();
+  im.onload = function () { thumbDone(item, true); };
+  im.onerror = function () { thumbDone(item, false); };
+  im.src = item.url;
+}
+function thumbDone(item, ok) {
+  thumbLoading--;
+  if (ok) thumbState[item.url] = 'ok';
+  else { delete thumbState[item.url]; S.thumbFail[item.path] = true; }
+  var slots = app.querySelectorAll('[data-thumbwait]');
+  for (var i = 0; i < slots.length; i++) {
+    if (slots[i].dataset.thumbwait !== item.path) continue;
+    var f = fileByPath(item.path);
+    if (f) slots[i].outerHTML = fileTile(f);
+  }
+  pumpThumbs();
+}
+// Only rows near the viewport queue their thumbnail: a placeholder is
+// observed after every render and queued once it comes within
+// THUMB_MARGIN of the screen, so a folder with thousands of photos does not
+// ask Quick Look for every one of them up front.
+var THUMB_MARGIN = '200px';
+var thumbObserver = null;
+function observeThumbs() {
+  var slots = app.querySelectorAll('[data-thumbwait]');
+  if (!('IntersectionObserver' in window)) {
+    for (var i = 0; i < slots.length; i++) queueSlot(slots[i]);
+    return;
+  }
+  if (thumbObserver) thumbObserver.disconnect();
+  thumbObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      thumbObserver.unobserve(en.target);
+      queueSlot(en.target);
+    });
+  }, { rootMargin: THUMB_MARGIN });
+  for (var j = 0; j < slots.length; j++) thumbObserver.observe(slots[j]);
+}
+function queueSlot(el) {
+  var f = fileByPath(el.dataset.thumbwait);
+  if (f) queueThumb(f, el.dataset.thumburl);
+}
+// A new scan drops thumbnails still waiting for the old one.
+function clearThumbQueue() {
+  thumbQueue.forEach(function (item) { delete thumbState[item.url]; });
+  thumbQueue = [];
+}
+function pvFile() { return S.pv ? fileByPath(S.pv) : null; }
+function dropPreview() {
+  if (S.pvBig && S.pvBig.url) URL.revokeObjectURL(S.pvBig.url);
+  S.pv = null; S.pvBig = null;
+}
+function closePreview() { S.pvReturn = S.pv; dropPreview(); render(); }
+// Keyboard focus stays inside the open drawer (it is aria-modal).
+function drawerFocusables() {
+  var d = app.querySelector('.drawer'); if (!d) return [];
+  return [].filter.call(d.querySelectorAll('button, select, input, textarea, a[href], [tabindex]'), function (el) {
+    return !el.disabled && el.tabIndex >= 0;
+  });
+}
+function openPreview(path) {
+  dropPreview();
+  var f = fileByPath(path); if (!f) { render(); return; }
+  S.pv = path; S.pvFocus = true;
+  var big = S.pvBig = { path: path, state: 'loading' };
+  render();
+  var load = f.preview === 'text'
+    ? api('GET', '/api/preview/text?path=' + encodeURIComponent(path)).then(function (j) {
+        big.state = 'text'; big.lines = j.lines; big.truncated = j.truncated;
+      })
+    : fetch(thumbUrl(f, 600)).then(function (r) {
+        if (r.ok) return r.blob().then(function (b) { big.state = 'image'; big.url = URL.createObjectURL(b); });
+        return r.text().then(function (t) {
+          var j = null; try { j = JSON.parse(t); } catch (e) { j = null; }
+          throw new Error((j && j.error) || ('HTTP ' + r.status + (t ? '：' + t : '')));
+        });
+      });
+  load.catch(function (e) { big.state = 'error'; big.error = e.message; }).then(function () {
+    if (S.pvBig === big) render();
+    else if (big.url) URL.revokeObjectURL(big.url); // drawer moved on meanwhile
+  });
+}
+function stepPreview(dir) {
+  var order = allFiles(); var ix = order.indexOf(pvFile()); var j = ix + dir;
+  if (ix >= 0 && j >= 0 && j < order.length) openPreview(order[j].path);
+}
+
+// ---------- actions ----------
+function go(screen) {
+  if (S.stage && S.stage.phase === 'flying') return;
+  dropPreview();
+  S.screen = screen; S.editing = null; S.confirmDel = null;
+  if (screen !== 'stage') S.stage = null;
+  if (screen === 'history') { run(api('GET', '/api/history'), function (j) { S.history = j; }); return; }
+  render();
+}
+function commitName() {
+  var from = S.editing; if (!from) return;
+  var to = S.draftName.trim();
+  S.editing = null;
+  if (!to || to === from) { S.renameReturn = from; render(); return; }
+  S.renameReturn = to;
+  run(api('POST', '/api/folders/rename', { from: from, to: to }), function (j) {
+    setData(j);
+    if (S.created[from]) { delete S.created[from]; S.created[to] = true; }
+    if (S.selCat === from) S.selCat = to;
+  });
+}
+function deleteFolder(name) {
+  run(api('POST', '/api/folders/delete', { name: name }), function (j) {
+    setData(j); delete S.created[name]; S.confirmDel = null;
+    if (S.selCat === name) S.selCat = null;
+  });
+}
+function startApply() {
+  run(api('POST', '/api/apply', { confirm: true }), function (j) {
+    setData(j.state); dropPreview();
+    var root = plan() ? plan().root : '';
+    var moved = j.report.moved.map(function (m) { return { name: basename(m.to), dest: destCategory(m.to, root) }; });
+    S.stage = { moved: moved, collisions: j.report.collisions.length, tick: 0, phase: 'flying' };
+    S.screen = 'stage';
+    clearInterval(timer);
+    if (reducedMotion() || !moved.length) { S.stage.phase = 'done'; return; }
+    var last = Math.min(moved.length, MAX_FLYERS) + 12;
+    timer = setInterval(function () {
+      S.stage.tick++;
+      if (S.stage.tick >= last) { clearInterval(timer); timer = null; S.stage.phase = 'done'; render(); }
+      else updateBins();
+    }, STEP);
+  });
+}
+function undoLast(then) {
+  run(api('POST', '/api/undo', {}), function (j) {
+    setData(j.state);
+    if (j.report.failed.length) S.error = j.report.failed.length + ' 個檔案無法搬回原位（仍留在紀錄中，可以再試一次）：\n' +
+      j.report.failed.map(function (f) { return basename(f.from) + '：' + f.reason; }).join('\n');
+    if (then) then();
+  });
+}
+function addChip(field, draftKey) {
+  var v = S[draftKey].trim(); if (!v) return;
+  var c = cloneCfg(); var cat = null;
+  if (field === 'ai_exclude') { c.ai_exclude = c.ai_exclude || []; if (c.ai_exclude.indexOf(v) < 0) c.ai_exclude.push(v); }
+  else {
+    c.category.forEach(function (x) { if (x.name === selCat().name) cat = x; });
+    if (field === 'extensions') v = v.replace(/^\./, '').toLowerCase();
+    if (cat[field].indexOf(v) < 0) cat[field].push(v);
+    // Adding a keyword that is switched off turns it on instead of listing it twice.
+    if (field === 'keywords') cat.disabled_keywords = (cat.disabled_keywords || []).filter(function (e) { return e !== v; });
+  }
+  S[draftKey] = ''; saveCfg(c);
+}
+function rmChip(field, v) {
+  var c = cloneCfg();
+  if (field === 'ai_exclude') c.ai_exclude = (c.ai_exclude || []).filter(function (e) { return e !== v; });
+  else c.category.forEach(function (x) { if (x.name === selCat().name) x[field] = x[field].filter(function (e) { return e !== v; }); });
+  saveCfg(c);
+}
+// Switch a keyword off (kept in disabled_keywords, never matched) or back on.
+function toggleKeyword(v, enable) {
+  var c = cloneCfg();
+  c.category.forEach(function (x) {
+    if (x.name !== selCat().name) return;
+    var from = enable ? (x.disabled_keywords || []) : x.keywords;
+    var to = enable ? x.keywords : (x.disabled_keywords || []);
+    from = from.filter(function (e) { return e !== v; });
+    if (to.indexOf(v) < 0) to.push(v);
+    x.keywords = enable ? to : from;
+    x.disabled_keywords = enable ? from : to;
+  });
+  saveCfg(c);
+}
+// Relative date presets (D-006), counted back from the scan date. A rule is
+// either relative or absolute (the server rejects both), so picking one
+// clears the other.
+var DATE_PRESETS = [['', '不限'], ['n7', '一週內'], ['n30', '一個月內'], ['o365', '超過一年']];
+function presetValue(d) {
+  if (d.newer_than_days != null && d.older_than_days == null) return 'n' + d.newer_than_days;
+  if (d.older_than_days != null && d.newer_than_days == null) return 'o' + d.older_than_days;
+  return d.newer_than_days != null ? 'custom' : '';
+}
+function presetOptions(d) {
+  var v = presetValue(d), known = DATE_PRESETS.some(function (p) { return p[0] === v; });
+  var opts = DATE_PRESETS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === v ? ' selected' : '') + '>' + p[1] + '</option>'; });
+  // A relative value the presets don't cover (edited in the rules file) is shown, not dropped.
+  if (!known) opts.push('<option value="' + esc(v) + '" selected>自訂</option>');
+  return opts.join('');
+}
+function setPreset(value) {
+  // '' = 不限; nN / oN = a preset or a single relative value; 'custom'
+  // (both relative bounds) is left as it is.
+  if (value && !/^[no]\d+$/.test(value)) return;
+  var c = cloneCfg();
+  c.category.forEach(function (x) {
+    if (x.name !== selCat().name) return;
+    if (!value) { delete x.date; return; }
+    var days = +value.slice(1);
+    x.date = value[0] === 'n' ? { newer_than_days: days } : { older_than_days: days };
+  });
+  saveCfg(c);
+}
+function setDate(bound, value) {
+  var c = cloneCfg();
+  c.category.forEach(function (x) {
+    if (x.name !== selCat().name) return;
+    var d = x.date || {};
+    delete d.newer_than_days; delete d.older_than_days;
+    if (value) d[bound] = value; else delete d[bound];
+    if (d.before || d.after) x.date = d; else delete x.date;
+  });
+  saveCfg(c);
+}
+
+var ACT = {
+  nav: function (d) { go(d.to); },
+  dismiss: function () { S.error = null; render(); },
+  pickSource: function (d) { var s = SOURCES.filter(function (x) { return x.id === d.id; })[0]; S.source = s.id; S.dir = s.path; render(); },
+  // The dialog opens on the Mac (the server runs osascript); Cancel keeps the box as is.
+  pickDir: function () {
+    run(api('POST', '/api/pick-folder', { start: S.dir }), function (j) {
+      if (j.path !== null) { S.dir = j.path; S.source = null; }
+    });
+  },
+  // 清除預覽: forget this scan and its choices; no file is touched.
+  clearPlan: function () {
+    run(api('POST', '/api/clear', {}), function (j) {
+      setData(j); dropPreview(); clearThumbQueue(); S.thumbFail = {}; S.created = {}; S.collapsed = {}; S.remembering = null; S.editing = null; S.confirmDel = null; S.screen = 'source';
+    });
+  },
+  scan: function () {
+    run(api('POST', '/api/scan', { dir: S.dir, recursive: S.recursive }), function (j) {
+      setData(j); dropPreview(); clearThumbQueue(); S.thumbFail = {}; S.created = {}; S.collapsed = {}; S.remembering = null; S.screen = 'preview';
+    });
+  },
+  openPv: function (d) { openPreview(d.path); },
+  closePv: function () { closePreview(); },
+  pvStep: function (d) { stepPreview(+d.dir); },
+  selectAll: function () {
+    var paths = allFiles().filter(function (f) { return f.status === 'move' && !f.checked; }).map(function (f) { return f.path; });
+    if (paths.length) run(api('POST', '/api/check', { paths: paths, checked: true }), setData);
+  },
+  apply: function () { startApply(); },
+  aiSuggest: function () {
+    S.aiBusy = true;
+    // finally runs before run()'s own handlers re-render, on success and error alike.
+    run(api('POST', '/api/ai/suggest', {}).finally(function () { S.aiBusy = false; }), setData);
+  },
+  addFolder: function () {
+    addNamed('新資料夾', function (name) {
+      S.created[name] = true; S.editing = name; S.draftName = name;
+    });
+  },
+  toggleGroup: function (d) { S.collapsed[d.key] = !S.collapsed[d.key]; render(); },
+  startEdit: function (d) { S.editing = d.key; S.draftName = d.key; S.confirmDel = null; render(); },
+  commitName: function () { commitName(); },
+  cancelName: function () { S.renameReturn = S.editing; S.editing = null; render(); },
+  startDelete: function (d) {
+    if (filesFor(d.key).length === 0) deleteFolder(d.key);
+    else { S.confirmDel = d.key; S.editing = null; render(); }
+  },
+  confirmDelete: function (d) { deleteFolder(d.key); },
+  cancelDelete: function () { S.confirmDel = null; render(); },
+  undoLast: function () { undoLast(function () { go('history'); }); },
+  undo: function () { undoLast(function () { go('history'); }); },
+  again: function () { S.stage = null; S.screen = 'source'; render(); },
+  pickCat: function (d) { S.selCat = d.id; S.draftExt = ''; S.draftKw = ''; render(); },
+  addCat: function () {
+    addNamed('新分類', function (name) { S.selCat = name; });
+  },
+  removeCat: function () { var c = selCat(); if (c) deleteFolder(c.name); },
+  addExt: function () { addChip('extensions', 'draftExt'); },
+  addKw: function () { addChip('keywords', 'draftKw'); },
+  addEx: function () { addChip('ai_exclude', 'draftEx'); },
+  rmExt: function (d) { rmChip('extensions', d.v); },
+  rmKw: function (d) {
+    var c = cloneCfg();
+    c.category.forEach(function (x) {
+      if (x.name !== selCat().name) return;
+      x.keywords = x.keywords.filter(function (e) { return e !== d.v; });
+      x.disabled_keywords = (x.disabled_keywords || []).filter(function (e) { return e !== d.v; });
+    });
+    saveCfg(c);
+  },
+  toggleKw: function (d) { toggleKeyword(d.v, d.on === '1'); },
+  remStart: function (d) {
+    var n = basename(d.path), dot = n.lastIndexOf('.');
+    S.remembering = d.path; S.draftRem = dot > 0 ? n.slice(0, dot) : n; render();
+  },
+  remCancel: function () { S.remembering = null; render(); },
+  remCommit: function () {
+    var path = S.remembering; if (path === null) return;
+    run(api('POST', '/api/rules/remember', { path: path, keyword: S.draftRem }), function (j) { setData(j); S.remembering = null; });
+  },
+  rmEx: function (d) { rmChip('ai_exclude', d.v); }
+};
+
+// ---------- views ----------
+function navBtn(key, icon, label, extra) {
+  var on = S.screen === key || (key === 'preview' && S.screen === 'stage');
+  return '<button class="navbtn' + (on ? ' on' : '') + '" data-act="nav" data-to="' + key + '">' + svg(I[icon]) + label + (extra || '') + '</button>';
+}
+function viewNav() {
+  var p = plan();
+  return '<nav class="side" aria-label="主選單">' +
+    '<div class="brand"><span style="color:var(--blue);display:flex">' + svg(I.logo, 26) + '</span>整理</div>' +
+    navBtn('source', 'desktop', '來源') +
+    navBtn('preview', 'preview', '預覽', p ? '<span class="badge">' + p.moving + '</span>' : '') +
+    navBtn('rules', 'sliders', '分類設定') +
+    navBtn('history', 'clock', '紀錄') +
+    '<div class="sep"></div>' +
+    '<button class="navbtn" disabled>' + svg(I.phone) + 'iPhone<span style="margin-left:auto;font-size:11px">之後提供</span></button>' +
+    '</nav>';
+}
+function viewError() {
+  if (!S.error) return '';
+  return '<div class="alert" role="alert"><span>' + esc(S.error) + '</span><button class="icon" style="width:28px;height:28px;color:inherit" data-act="dismiss" aria-label="關閉">' + svg(I.close, 14) + '</button></div>';
+}
+function viewSource() {
+  var cards = SOURCES.map(function (x) {
+    return '<button class="card' + (x.id === S.source ? ' on' : '') + '" data-act="pickSource" data-id="' + x.id + '"' + (x.disabled ? ' disabled' : '') + '>' +
+      '<span class="ic">' + svg(I[x.icon], 22) + '</span>' +
+      '<span style="display:flex;flex-direction:column;gap:4px"><span class="nm">' + esc(x.name) + '</span><span class="pt">' + esc(x.path) + '</span></span>' +
+      (x.note ? '<span class="nt">' + esc(x.note) + '</span>' : '') + '</button>';
+  }).join('');
+  return '<section class="page"><div><h1>要整理哪裡？</h1><p class="sub">選一個來源，掃描後會先給你看整理計畫，確認之前不會搬動任何檔案。</p></div>' +
+    '<div class="cards">' + cards + '</div>' +
+    '<div class="field"><label for="dir">資料夾路徑</label><div class="pathrow"><input id="dir" class="txt" data-input="dir" data-enter="scan" value="' + esc(S.dir) + '" placeholder="/Users/you/Desktop 或 ~/Downloads"><button class="btn" data-act="pickDir"' + (S.busy ? ' disabled' : '') + ' title="用 Mac 的視窗選一個資料夾">選擇…</button></div>' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted2)"><input type="checkbox" class="cb" data-change="recursive"' + (S.recursive ? ' checked' : '') + '>包含子資料夾</label></div>' +
+    '<div class="actions" style="align-items:center;gap:16px"><button class="btn primary" data-act="scan"' + (S.busy ? ' disabled' : '') + '>掃描</button><span style="font-size:13px;color:var(--muted)">掃描只讀取檔名與屬性，不會搬動檔案</span></div></section>';
+}
+function reasonText(f) {
+  if (f.source === 'manual') return '手動指定';
+  if (f.source === 'rule') return '規則：' + f.reason;
+  if (f.source === 'ai') return 'AI：' + f.reason;
+  return f.reason;
+}
+function destSelect(f, c, id, extraStyle) {
+  var cur = f.dest === null ? NONE : f.dest;
+  var opts = cats().map(function (x) { return '<option value="' + esc(x.name) + '"' + (x.name === cur ? ' selected' : '') + '>' + esc(x.name) + '/</option>'; }).join('') +
+    '<option value="' + NONE + '"' + (cur === NONE ? ' selected' : '') + '>不搬（留在原處）</option>';
+  return '<select class="dest' + (f.source === 'ai' ? ' pending' : '') + '" data-change="dest" data-path="' + esc(f.path) + '"' + (id ? ' id="' + id + '"' : '') + ' aria-label="' + esc(f.name) + ' 的目的地" title="' + esc(f.to || '不搬') + '" style="background:' + c.soft + ';color:' + c.color + (extraStyle ? ';' + extraStyle : '') + '">' + opts + '</select>';
+}
+function fileColor(f) { return f.dest === null ? GRAY : colorOf(f.dest); }
+// A real Quick Look thumbnail for images, PDFs and videos; a file icon
+// otherwise. A thumbnail that failed says so (無縮圖) instead of hiding it.
+function fileTile(f) {
+  var c = fileColor(f);
+  var media = THUMB_KINDS[f.preview];
+  if (media && !S.thumbFail[f.path]) {
+    var url = thumbUrl(f, 96);
+    if (thumbState[url] === 'ok') return '<img class="th" src="' + esc(url) + '" alt="" data-thumb="' + esc(f.path) + '">';
+    return '<span class="th" aria-hidden="true" data-thumbwait="' + esc(f.path) + '" data-thumburl="' + esc(url) + '"></span>';
+  }
+  var ext = f.name.indexOf('.') > 0 ? f.name.slice(f.name.lastIndexOf('.') + 1).toUpperCase().slice(0, 4) : '?';
+  return '<span class="tile"' + (media ? ' title="無法產生縮圖"' : '') + '>' + docIcon(c, 34, 42) + '<span class="ext" style="color:' + c.color + '">' + esc(media ? '無縮圖' : ext) + '</span></span>';
+}
+function fileRow(f) {
+  var c = fileColor(f);
+  var check = f.dest !== null
+    ? '<input type="checkbox" class="cb" data-change="check" data-path="' + esc(f.path) + '"' + (f.checked ? ' checked' : '') + (f.status === 'move' ? '' : ' disabled') + ' aria-label="搬移 ' + esc(f.name) + '">'
+    : '<span style="width:18px;flex:none"></span>';
+  var meta = f.status === 'collision'
+    ? '<span class="fmeta warn">不會搬：' + esc(f.problem) + '（不會覆蓋）</span>'
+    : f.status === 'in_place' ? '<span class="fmeta">已經在這個資料夾裡</span>'
+    : '<span class="fmeta">' + esc(fmtSize(f.size)) + ' · ' + esc(f.modified) + ' · ' + esc(reasonText(f)) + '</span>';
+  return '<div class="row"><span class="lead">' + check +
+    '<button class="namebtn" data-act="openPv" data-path="' + esc(f.path) + '" title="預覽">' + fileTile(f) +
+    '<span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto"><span class="fname" title="' + esc(f.path) + '">' + esc(f.name) + '</span>' + meta + '</span>' +
+    '<span class="eye" style="color:var(--muted);display:flex">' + svg(I.eye) + '</span></button></span>' +
+    '<span style="display:inline-flex;align-items:center;gap:6px;flex:none;opacity:' + (f.dest !== null && !f.checked ? .55 : 1) + ';color:' + c.color + '">' + svg(I.arrow, 14) + destSelect(f, c) + '</span>' +
+    (f.source === 'manual' && f.dest !== null
+      ? '<button class="btn sm" data-act="remStart" data-path="' + esc(f.path) + '" title="之後檔名包含關鍵字的檔案，會自動分到「' + esc(f.dest) + '」" aria-label="記住 ' + esc(f.name) + ' 的分類">記住</button>' : '') +
+    (S.remembering === f.path ? rememberEditor(f) : '') + '</div>';
+}
+// 記住: the keyword to save as a rule for this file's folder (editable).
+function rememberEditor(f) {
+  return '<div class="gedit" style="flex:1 1 100%;padding-left:0"><label for="remkw" style="font-size:13px;color:var(--muted2)">檔名包含這個字，就分到「' + esc(f.dest) + '」</label>' +
+    '<input id="remkw" data-input="draftRem" data-enter="remCommit" data-autofocus value="' + esc(S.draftRem) + '" aria-label="記住的關鍵字">' +
+    '<button class="btn primary sm" data-act="remCommit">記住</button><button class="btn sm" data-act="remCancel">取消</button></div>';
+}
+// Per-group controls in 預覽: a checkbox that checks or unchecks every file
+// of the group that can move (indeterminate when only some are), and
+// 全部移到… which gives every file of the group one destination, e.g. to
+// merge a folder into another (POST /api/assign-all, all-or-nothing).
+function movable(files) { return files.filter(function (f) { return f.dest !== null && f.status === 'move'; }); }
+function groupCheck(key, title, files) {
+  var m = movable(files), n = m.filter(function (f) { return f.checked; }).length;
+  if (!m.length) return '<span class="gcb-gap"></span>';
+  return '<input type="checkbox" class="cb gcb" data-change="checkGroup" data-key="' + esc(key) + '"' +
+    (n === m.length ? ' checked' : '') + (n > 0 && n < m.length ? ' data-indet="1"' : '') +
+    ' aria-label="全選「' + esc(title) + '」" title="全選 / 取消全選這一組">';
+}
+function groupMove(key, title, files) {
+  if (!files.length) return '';
+  var opts = cats().filter(function (c) { return c.name !== key; })
+    .map(function (c) { return '<option value="' + esc(c.name) + '">' + esc(c.name) + '/</option>'; }).join('');
+  if (key !== 'none') opts += '<option value="' + NONE + '">不搬（留在原處）</option>';
+  return '<select class="gmove" data-change="moveGroup" data-key="' + esc(key) + '" aria-label="把「' + esc(title) + '」全部移到…"><option value="">全部移到…</option>' + opts + '</select>';
+}
+function groupFiles(key) {
+  var p = plan(); if (!p) return [];
+  var g = p.groups.filter(function (x) { return (x.kind === 'folder' ? x.folder : x.kind) === key; })[0];
+  return g ? g.files : [];
+}
+function group(key, title, color, files, opt) {
+  var open = !S.collapsed[key];
+  var head;
+  if (opt.canEdit && S.editing === key) {
+    head = '<div class="gedit">' + folderIcon(color, 20, 16) +
+      '<input data-input="draftName" data-enter="rename" data-autofocus value="' + esc(S.draftName) + '" aria-label="資料夾名稱">' +
+      '<button class="btn primary sm" data-act="commitName">完成</button><button class="btn sm" data-act="cancelName">取消</button></div>';
+  } else if (opt.canEdit && S.confirmDel === key) {
+    var n = filesFor(key).length;
+    head = '<div class="gedit confirm"><span style="color:var(--red);display:flex">' + svg(I.trash) + '</span>' +
+      '<span style="flex:1 1 200px;font-size:14px">刪除「' + esc(title) + '」？裡面 ' + n + ' 個檔案會改成「不搬」，檔案本身不會被刪。</span>' +
+      '<button class="btn danger sm" data-act="confirmDelete" data-key="' + esc(key) + '">刪除</button><button class="btn sm" data-act="cancelDelete">取消</button></div>';
+  } else {
+    head = groupCheck(key, title, files) + '<button class="gtoggle" data-act="toggleGroup" data-key="' + esc(key) + '" aria-expanded="' + open + '">' +
+      '<span class="chev" style="color:var(--muted);display:flex;transform:rotate(' + (open ? 90 : 0) + 'deg)">' + svg(I.chev, 14) + '</span>' +
+      folderIcon(color, 20, 16) + '<span class="gtitle">' + esc(title) + '</span><span class="gcount">' + files.length + ' 個</span>' +
+      '<span class="gnote" style="color:' + (opt.noteColor || 'var(--muted)') + '" title="' + esc(opt.note || '') + '">' + esc(opt.note || '') + '</span></button>' +
+      groupMove(key, title, files) +
+      (opt.canEdit ? '<button class="icon" data-act="startEdit" data-key="' + esc(key) + '" aria-label="重新命名 ' + esc(title) + '" title="重新命名">' + svg(I.pencil, 16) + '</button>' +
+        '<button class="icon del" data-act="startDelete" data-key="' + esc(key) + '" aria-label="刪除 ' + esc(title) + '" title="刪除資料夾">' + svg(I.trash, 16) + '</button>' : '');
+  }
+  var body = '';
+  if (open) {
+    body = '<div class="gbody">' +
+      (files.length === 0 ? '<div class="empty">' + svg(I.arrow, 16) + '還是空的。把任何檔案右邊的目的地改成「' + esc(title) + '」，它就會搬到這裡。</div>' : '') +
+      files.map(fileRow).join('') + '</div>';
+  }
+  return '<div class="group" style="border-color:' + (opt.border || 'var(--line)') + '"><div class="ghead" style="background:' + (opt.headBg || '#fff') + '">' + head + '</div>' + body + '</div>';
+}
+function viewPreview() {
+  var p = plan();
+  if (!p) {
+    return '<section class="page" style="max-width:720px;padding:64px 0;align-items:flex-start"><h1>還沒有整理計畫</h1><p class="sub">先到「來源」選一個資料夾並掃描。</p><button class="btn primary" data-act="nav" data-to="source">選擇來源</button></section>';
+  }
+  var counts = {};
+  allFiles().forEach(function (f) { if (f.checked) counts[f.dest] = (counts[f.dest] || 0) + 1; });
+  var used = cats().filter(function (c) { return counts[c.name]; });
+  var bar = used.map(function (c) { return '<div style="width:' + (counts[c.name] / p.moving * 100) + '%;background:' + colorOf(c.name).color + '"></div>'; }).join('');
+  var legend = used.map(function (c) { return '<span><span class="sw" style="background:' + colorOf(c.name).color + '"></span>' + esc(c.name) + ' ' + counts[c.name] + '</span>'; }).join('');
+  var groups = p.groups.map(function (g) {
+    if (g.kind === 'folder') {
+      if (!g.files.length && !S.created[g.folder] && S.editing !== g.folder) return '';
+      return group(g.folder, g.folder, colorOf(g.folder).color, g.files, { canEdit: true, note: S.created[g.folder] ? '新資料夾' : g.target });
+    }
+    if (g.kind === 'ai') return group('ai', 'AI 建議', '#8A5A00', g.files, { note: '預設不勾選，勾了或改目的地才會搬', noteColor: '#7A4E00', border: '#EBD9A8', headBg: '#FFF9EA' });
+    return group('none', '不搬', '#9A9DA1', g.files, { note: '留在原處，可以改目的地' });
+  }).join('');
+  // Files no rule classifies and nobody assigned by hand can go to the AI.
+  var askable = allFiles().some(function (f) { return f.source === 'none' || f.source === 'ai'; });
+  var aiBtn = askable ? '<button class="btn" data-act="aiSuggest" title="只送出檔名、大小、日期；「不送給 AI」的項目不會送出"' + (S.busy ? ' disabled' : '') + '>' + (S.aiBusy ? 'AI 判斷中…' : '請 AI 建議') + '</button>' : '';
+  return '<section class="page"><div class="head"><div><h1>整理預覽</h1><p class="sub">' + esc(p.root) + ' · ' + p.total + ' 個檔案 · 用右邊的選單改目的地</p></div>' +
+    '<div class="actions">' + aiBtn + '<button class="btn" data-act="addFolder"' + (S.busy ? ' disabled' : '') + '>' + svg(I.newfolder, 16) + '新增資料夾</button><button class="btn" data-act="selectAll">全選</button><button class="btn" data-act="clearPlan"' + (S.busy ? ' disabled' : '') + ' title="放掉這次掃描與在預覽裡做的選擇，不會動到任何檔案；分類設定不受影響">清除預覽</button>' +
+    '<button class="btn primary" data-act="apply"' + (p.moving && !S.busy ? '' : ' disabled') + '>確認搬移 ' + p.moving + ' 個</button></div></div>' +
+    '<div class="panel" style="display:flex;flex-direction:column;gap:10px;padding:16px"><div class="bar" role="img" aria-label="各資料夾檔案比例">' + bar + '</div><div class="legend">' + (legend || '還沒有勾選要搬的檔案') + '</div></div>' +
+    '<div class="groups">' + groups + '</div></section>';
+}
+function stageGeometry() {
+  var list = S.stage.moved;
+  var names = [];
+  list.forEach(function (m) { if (names.indexOf(m.dest) < 0) names.push(m.dest); });
+  var n = Math.max(names.length, 1), gap = 16;
+  var bw = Math.min(140, (796 - (n - 1) * gap) / n), x0 = (880 - (n * bw + (n - 1) * gap)) / 2;
+  var binX = {}; names.forEach(function (name, i) { binX[name] = x0 + i * (bw + gap); });
+  return { list: list, names: names, bw: bw, binX: binX };
+}
+function binState(name) {
+  var total = 0, landed = 0, done = S.stage.phase === 'done';
+  S.stage.moved.forEach(function (m, i) {
+    if (m.dest !== name) return;
+    total++;
+    if (done || S.stage.tick >= Math.min(i, MAX_FLYERS - 1) + 9) landed++;
+  });
+  return { total: total, landed: landed };
+}
+function updateBins() {
+  stageGeometry().names.forEach(function (name) {
+    var el = document.querySelector('[data-bin="' + CSS.escape(name) + '"]'); if (!el) return;
+    var b = binState(name), c = colorOf(name), hit = b.landed > 0;
+    el.style.borderColor = hit ? c.color : ''; el.style.background = hit ? c.soft : '';
+    el.style.transform = hit && b.landed < b.total ? 'scale(1.04)' : 'scale(1)';
+    el.querySelector('small').textContent = b.landed + ' / ' + b.total;
+  });
+}
+function viewStage() {
+  var st = S.stage; if (!st) return viewPreview();
+  var g = stageGeometry(); var flying = st.phase === 'flying';
+  var flyers = flying ? g.list.slice(0, MAX_FLYERS).map(function (m, i) {
+    var c = colorOf(m.dest);
+    var sx = 40 + (i % 8) * 102, sy = 28 + Math.floor(i / 8) * 96;
+    var dx = g.binX[m.dest] + g.bw / 2 - (sx + 36), dy = 366 - (sy + 30);
+    return '<div class="flyer" style="left:' + sx + 'px;top:' + sy + 'px;--dx:' + dx + 'px;--dy:' + dy + 'px;animation-delay:' + (i * STEP) + 'ms">' + docIcon(c, 44, 54) + '<span>' + esc(m.name) + '</span></div>';
+  }).join('') : '';
+  var bins = g.names.map(function (name) {
+    var b = binState(name), c = colorOf(name), hit = b.landed > 0;
+    return '<div class="bin" data-bin="' + esc(name) + '" style="left:' + g.binX[name] + 'px;width:' + g.bw + 'px' + (hit ? ';border-color:' + c.color + ';background:' + c.soft : '') + '">' + folderIcon(c.color, 34, 28) + '<b>' + esc(name) + '</b><small>' + b.landed + ' / ' + b.total + '</small></div>';
+  }).join('');
+  var skipped = st.collisions ? '<span style="font-size:13px;color:var(--red)">' + st.collisions + ' 個檔案因為目的地已有同名檔案而沒有搬（沒有覆蓋任何檔案）</span>' : '';
+  var done = st.phase === 'done' ? '<div class="done"><span style="color:#0A6E64;display:flex">' + svg(I.check, 48, ' stroke-width="2"') + '</span><span style="font-size:18px;font-weight:700">已整理 ' + st.moved.length + ' 個檔案</span>' + skipped +
+    '<div class="actions"><button class="btn" data-act="undoLast"' + (st.moved.length ? '' : ' disabled') + '>' + svg(I.undo, 16) + '復原這次</button><button class="btn" data-act="nav" data-to="history">查看紀錄</button><button class="btn primary" data-act="again">再整理一個</button></div></div>' : '';
+  return '<section class="page"><div><h1>' + (flying ? '整理中…' : '整理完成') + '</h1><p class="sub">' + (flying ? '檔案正在搬進各資料夾' : '所有搬移都記在「紀錄」，隨時可以復原') + '</p></div>' +
+    '<div class="stagewrap"><div class="stage">' + flyers + bins + done + '</div></div></section>';
+}
+function viewRules() {
+  var cc = selCat();
+  var list = cats().map(function (c) { return '<button class="navbtn' + (cc && c.name === cc.name ? ' on' : '') + '" data-act="pickCat" data-id="' + esc(c.name) + '"><span class="sw" style="width:12px;height:12px;background:' + colorOf(c.name).color + '"></span>' + esc(c.name) + '</button>'; }).join('');
+  var form = '<div class="rform"><p class="sub">還沒有分類，先新增一個。</p></div>';
+  if (cc) {
+    var col = colorOf(cc.name); var d = cc.date || {};
+    var root = plan() ? plan().root : '（掃描的資料夾）';
+    var exts = cc.extensions.map(function (v) { return '<span class="chip mono" style="background:' + col.soft + ';color:' + col.color + '">.' + esc(v) + '<button data-act="rmExt" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>'; }).join('');
+    var kwChip = function (v, on) {
+      return '<span class="chip' + (on ? '' : ' off') + '">' + esc(v) +
+        '<button data-act="toggleKw" data-v="' + esc(v) + '" data-on="' + (on ? '0' : '1') + '" aria-label="' + (on ? '停用 ' : '啟用 ') + esc(v) + '">' + (on ? '停用' : '啟用') + '</button>' +
+        '<button data-act="rmKw" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>';
+    };
+    var kws = cc.keywords.map(function (v) { return kwChip(v, true); }).join('') +
+      (cc.disabled_keywords || []).map(function (v) { return kwChip(v, false); }).join('');
+    var noRules = !cc.extensions.length && !cc.keywords.length && !cc.date;
+    form = '<div class="rform"><div style="display:flex;align-items:center;gap:10px"><span class="sw" style="width:14px;height:14px;border-radius:4px;background:' + col.color + '"></span><h2 style="font-size:20px">' + esc(cc.name) + '</h2></div>' +
+      '<div class="field"><label for="catname">名稱（也是目標資料夾）</label><input id="catname" class="txt" data-change="catname" value="' + esc(cc.name) + '">' +
+      '<span class="hint">檔案會搬到 ' + esc(root) + '/' + esc(cc.name) + '/；在預覽畫面改資料夾名稱，這裡也會跟著改</span></div>' +
+      '<div class="field"><span class="lbl">副檔名</span><div class="chips">' + exts + '<input class="txt sm" style="width:150px" data-input="draftExt" data-enter="addExt" value="' + esc(S.draftExt) + '" aria-label="新增副檔名" placeholder="新增，例如 heic"><button class="btn sm" data-act="addExt">加入</button></div></div>' +
+      '<div class="field"><span class="lbl">檔名包含</span><div class="chips">' + kws + '<input class="txt sm" style="width:150px" data-input="draftKw" data-enter="addKw" value="' + esc(S.draftKw) + '" aria-label="新增關鍵字" placeholder="新增關鍵字"><button class="btn sm" data-act="addKw">加入</button></div></div>' +
+      '<div class="field"><span class="lbl">修改日期</span><div class="chips">' +
+      '<label class="hint" for="datepreset">常用</label><select id="datepreset" class="txt sm" data-change="datePreset">' + presetOptions(d) + '</select>' +
+      '<label class="hint" for="after">從（含）</label><input id="after" type="date" class="txt sm" data-change="after" value="' + esc(d.after || '') + '">' +
+      '<label class="hint" for="before">到（不含）</label><input id="before" type="date" class="txt sm" data-change="before" value="' + esc(d.before || '') + '"></div>' +
+      '<span class="hint">留空表示不限</span></div>' +
+      (noRules ? '<p class="hint">這個分類沒有規則，只有手動指定的檔案會搬進來。</p>' : '') +
+      '<div style="display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--line2)"><button class="btn" style="color:var(--red)" data-act="removeCat">刪除分類</button></div></div>';
+  }
+  var ex = (cfg().ai_exclude || []).map(function (v) { return '<span class="chip mono">' + esc(v) + '<button data-act="rmEx" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>'; }).join('');
+  return '<section class="page"><div><h1>分類設定</h1><p class="sub">規則由上到下比對，第一個符合的分類勝出；規則都抓不到的檔案，才會交給 AI 建議。設定會存回設定檔。</p></div>' +
+    '<div class="panel rules"><div class="rlist">' + list + '<button class="btn addcat" data-act="addCat"' + (S.busy ? ' disabled' : '') + '>' + svg(I.plus, 14) + '新增分類</button></div>' + form + '</div>' +
+    '<div class="panel" style="display:flex;flex-direction:column;gap:10px;padding:20px"><div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted2);display:flex">' + svg(I.lock) + '</span><h2 style="font-size:16px">不送給 AI</h2></div>' +
+    '<p style="font-size:13px;color:var(--muted)">這些資料夾與副檔名只用規則分類，檔名與內容都不會送出。</p>' +
+    '<div class="chips">' + ex + '<input class="txt sm" style="width:190px" data-input="draftEx" data-enter="addEx" value="' + esc(S.draftEx) + '" aria-label="新增排除項目" placeholder="資料夾或 *.副檔名"><button class="btn sm" data-act="addEx">加入</button></div></div></section>';
+}
+function viewHistory() {
+  if (!S.history) return '<section class="page"><div><h1>紀錄</h1><p class="sub">載入中…</p></div></section>';
+  var rows = S.history.map(function (h) {
+    var segs = h.folders.map(function (f) { return '<div style="width:' + (f.count / Math.max(h.count, 1) * 100) + '%;background:' + colorOf(f.folder).color + '" title="' + esc(f.folder) + ' ' + f.count + '"></div>'; }).join('');
+    var when = new Date(h.applied_at); when = isNaN(when) ? h.applied_at : when.toLocaleString('zh-TW');
+    return '<div class="panel hist"><div style="display:flex;flex-direction:column;gap:4px;min-width:160px"><span style="font-size:15px;font-weight:700">' + esc(basename(h.root)) + ' · ' + h.count + ' 個檔案</span><span style="font-size:12px;color:var(--muted)">' + esc(when) + '</span></div>' +
+      '<div class="bar" role="img" aria-label="這次整理的分類比例">' + segs + '</div>' +
+      '<button class="btn" data-act="undo"' + (h.undoable && !S.busy ? '' : ' disabled') + (h.undoable ? '' : ' title="只能從最近一次開始復原"') + '>' + svg(I.undo, 16) + '復原</button></div>';
+  }).join('');
+  return '<section class="page"><div><h1>紀錄</h1><p class="sub">每次整理都會記下來，可以把檔案搬回原位（從最近一次開始）。</p></div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px">' + (rows || '<p class="sub">還沒有整理紀錄。</p>') + '</div></section>';
+}
+
+function bigPreview(f) {
+  var b = S.pvBig;
+  if (!b || b.path !== f.path || b.state === 'loading') return '<span class="sub">產生預覽中…</span>';
+  if (b.state === 'image') return '<img src="' + esc(b.url) + '" alt="' + esc(f.name) + ' 的預覽">';
+  if (b.state === 'text') return '<pre>' + esc(b.lines.join('\n')) + (b.truncated ? '\n…' : '') + '</pre>';
+  return '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;text-align:center">' +
+    '<span style="color:var(--muted2);display:flex">' + svg(I.eye, 40, ' stroke-width="1.5"') + '</span><span style="font-size:15px;font-weight:700">無法預覽</span>' +
+    '<span style="font-size:12px;color:var(--muted);word-break:break-word">' + esc(b.error) + '</span><span style="font-size:12px;color:var(--muted)">下方仍有檔案資訊</span></div>';
+}
+function viewDrawer() {
+  if (S.screen !== 'preview') return '';
+  var f = pvFile(); if (!f) return '';
+  var order = allFiles(); var ix = order.indexOf(f); var c = fileColor(f);
+  var canMove = f.dest !== null && f.status === 'move';
+  var target = f.status === 'collision' ? '<span class="fmeta warn" style="white-space:normal">不會搬：' + esc(f.problem) + '（不會覆蓋）</span>'
+    : f.status === 'in_place' ? '<span class="fmeta">已經在這個資料夾裡</span>'
+    : '<span style="font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all">' + (f.to ? '→ ' + esc(f.to) : '不搬（留在原處）') + '</span>';
+  return '<button class="backdrop" data-act="closePv" aria-label="關閉預覽" tabindex="-1"></button>' +
+    '<aside class="drawer" role="dialog" aria-modal="true" aria-label="檔案預覽">' +
+    '<div class="dhead"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px"><h2 style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(f.name) + '">' + esc(f.name) + '</h2><span style="font-size:12px;color:var(--muted)">' + (ix + 1) + ' / ' + order.length + '</span></div>' +
+    '<button class="icon" data-act="closePv" data-pvclose aria-label="關閉">' + svg(I.close, 18, ' stroke-width="2"') + '</button></div>' +
+    '<div class="dbody"><div class="big">' + bigPreview(f) + '</div>' +
+    '<div class="decide"><label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer"><input type="checkbox" class="cb" data-change="check" data-path="' + esc(f.path) + '"' + (f.checked ? ' checked' : '') + (canMove ? '' : ' disabled') + '>搬移這個檔案</label>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label for="pvdest" style="font-size:13px;color:var(--muted2)">目的地</label>' + destSelect(f, c, 'pvdest', 'flex:1 1 180px;max-width:none;min-height:40px') + '</div>' + target + '</div>' +
+    '<dl><dt>大小</dt><dd>' + esc(fmtSize(f.size)) + '</dd><dt>修改日期</dt><dd>' + esc(f.modified) + '</dd>' +
+    '<dt>原始位置</dt><dd style="font-family:var(--mono);font-size:12px;word-break:break-all">' + esc(f.path) + '</dd><dt>判斷依據</dt><dd>' + esc(reasonText(f)) + '</dd></dl></div>' +
+    '<div class="dfoot"><button class="btn" data-act="pvStep" data-dir="-1"' + (ix <= 0 ? ' disabled' : '') + '>' + svg(I.left, 16, ' stroke-width="2"') + '上一個</button>' +
+    '<button class="btn" data-act="pvStep" data-dir="1"' + (ix >= order.length - 1 ? ' disabled' : '') + '>下一個' + svg(I.right, 16, ' stroke-width="2"') + '</button></div>' +
+    '<div class="kbd">← → 切換 · Esc 關閉</div></aside>';
+}
+
+var VIEWS = { source: viewSource, preview: viewPreview, stage: viewStage, rules: viewRules, history: viewHistory };
+var app = document.getElementById('app');
+// Position of the focused control among all the drawer's controls (disabled
+// ones included, so the position is stable), or -1. render() replaces the
+// whole DOM, so without this a re-render while the drawer is open (its large
+// preview arriving, a checkbox or destination change) dropped focus to <body>.
+var DRAWER_CONTROLS = 'button, select, input, textarea, a[href], [tabindex]';
+function drawerFocusIndex() {
+  var d = app.querySelector('.drawer');
+  if (!d || !d.contains(document.activeElement)) return -1;
+  return [].indexOf.call(d.querySelectorAll(DRAWER_CONTROLS), document.activeElement);
+}
+// render() rebuilds the whole page, which restarted the screen fade-in and
+// the drawer slide-in on every click. They now play only on entering a
+// screen and on opening the drawer. A re-render in the middle of one (e.g.
+// a cached preview arriving 20 ms after the drawer opens) continues it on
+// the new element instead of restarting or cutting it.
+var lastScreen = null;
+// 'done' (no animation running), the running animation's elapsed ms, or
+// null (the element is not there).
+function animState(sel) {
+  var el = app.querySelector(sel); if (!el) return null;
+  var a = el.getAnimations ? el.getAnimations()[0] : null;
+  return a && a.playState === 'running' ? a.currentTime : 'done';
+}
+function continueAnim(sel, t) {
+  var el = app.querySelector(sel);
+  if (el && typeof t === 'number') el.style.animationDelay = (-t) + 'ms';
+}
+function render() {
+  var keep = drawerFocusIndex();
+  var pageAnim = S.screen === lastScreen ? animState('.page') : null;
+  var drawerAnim = animState('.drawer');
+  lastScreen = S.screen;
+  var still = (pageAnim === 'done' ? ' still' : '') + (drawerAnim === 'done' ? ' drawer-open' : '');
+  app.innerHTML = '<div class="shell' + still + '">' + viewNav() + '<main>' + viewError() + VIEWS[S.screen]() + '</main>' + viewDrawer() + '</div>';
+  observeThumbs();
+  [].forEach.call(app.querySelectorAll('[data-indet]'), function (el) { el.indeterminate = true; });
+  continueAnim('.page', pageAnim);
+  continueAnim('.drawer', drawerAnim);
+  var af = app.querySelector('[data-autofocus]');
+  if (af) { af.focus(); af.select(); }
+  if (S.pvFocus) { S.pvFocus = false; var cl = app.querySelector('[data-pvclose]'); if (cl) cl.focus(); }
+  else if (keep >= 0 && !af) {
+    var d = app.querySelector('.drawer');
+    var els = d ? d.querySelectorAll(DRAWER_CONTROLS) : [];
+    var el = els[Math.min(keep, els.length - 1)];
+    if (el && !el.disabled) el.focus();
+    else { var fs = drawerFocusables(); if (fs.length) fs[0].focus(); }
+  }
+  if (S.renameReturn !== null) {
+    var rb = [].filter.call(app.querySelectorAll('[data-act="startEdit"]'), function (b) { return b.dataset.key === S.renameReturn; })[0];
+    if (rb) { rb.focus(); S.renameReturn = null; }
+    else if (!S.busy) S.renameReturn = null; // the folder is gone; nothing to return to
+  }
+  if (S.pvReturn !== null) {
+    var back = S.pvReturn; S.pvReturn = null;
+    // Back to the row that was last shown, if it is still in the list.
+    var rows = app.querySelectorAll('.namebtn[data-act="openPv"]');
+    for (var i = 0; i < rows.length; i++) if (rows[i].dataset.path === back) { rows[i].focus(); break; }
+  }
+}
+
+// ---------- events (delegated) ----------
+app.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
+  var fn = ACT[t.dataset.act]; if (fn) fn(t.dataset, e);
+});
+app.addEventListener('change', function (e) {
+  var t = e.target; var k = t.dataset.change; if (!k) return;
+  if (k === 'check') run(api('POST', '/api/check', { paths: [t.dataset.path], checked: t.checked }), setData);
+  else if (k === 'dest') run(api('POST', '/api/assign', { path: t.dataset.path, folder: t.value === NONE ? null : t.value }), setData);
+  else if (k === 'recursive') S.recursive = t.checked;
+  else if (k === 'after' || k === 'before') setDate(k, t.value);
+  else if (k === 'datePreset') setPreset(t.value);
+  else if (k === 'checkGroup') run(api('POST', '/api/check', { paths: movable(groupFiles(t.dataset.key)).map(function (f) { return f.path; }), checked: t.checked }), setData);
+  else if (k === 'moveGroup' && t.value) run(api('POST', '/api/assign-all', { paths: groupFiles(t.dataset.key).map(function (f) { return f.path; }), folder: t.value === NONE ? null : t.value }), setData);
+  else if (k === 'catname') { S.editing = selCat().name; S.draftName = t.value; commitName(); }
+});
+app.addEventListener('input', function (e) { var k = e.target.dataset.input; if (k) S[k] = e.target.value; });
+// A list thumbnail Quick Look could not make: show 無縮圖 (error events do
+// not bubble, so listen in the capture phase).
+app.addEventListener('error', function (e) {
+  var t = e.target; if (!t || t.tagName !== 'IMG' || !t.dataset.thumb) return;
+  S.thumbFail[t.dataset.thumb] = true;
+  var f = fileByPath(t.dataset.thumb); if (f) t.outerHTML = fileTile(f);
+}, true);
+document.addEventListener('keydown', function (e) {
+  var t = e.target;
+  // Preview drawer: Tab / Shift+Tab wrap around inside it (aria-modal);
+  // focus that is somehow behind the backdrop is pulled back in.
+  if (e.key === 'Tab' && S.screen === 'preview' && pvFile()) {
+    var fs = drawerFocusables();
+    if (fs.length) {
+      var first = fs[0], last = fs[fs.length - 1];
+      var inside = fs.indexOf(document.activeElement) >= 0;
+      if (!inside) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); return; }
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); return; }
+    }
+  }
+  // Preview drawer: Esc closes, ← → switch (not while choosing in a dropdown).
+  if (S.screen === 'preview' && pvFile() && !(t.dataset && t.dataset.enter)) {
+    if (e.key === 'Escape') { e.preventDefault(); closePreview(); return; }
+    var choosing = t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type !== 'checkbox');
+    if (!choosing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); stepPreview(e.key === 'ArrowLeft' ? -1 : 1); return; }
+  }
+  // Only inputs carry data-enter; buttons keep their native Enter = click.
+  var act = t.dataset && t.dataset.enter;
+  if (!act) return;
+  if (act === 'rename') {
+    if (e.key === 'Enter') { e.preventDefault(); commitName(); }
+    else if (e.key === 'Escape') { e.preventDefault(); S.renameReturn = S.editing; S.editing = null; render(); }
+  } else if (act === 'remCommit' && e.key === 'Escape') {
+    e.preventDefault(); S.remembering = null; render();
+  } else if (e.key === 'Enter' && ACT[act]) { e.preventDefault(); ACT[act](t.dataset); }
+});
+
+render();
+run(api('GET', '/api/state'), setData);
+</script>
+</body>
+</html>

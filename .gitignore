@@ -1,0 +1,10 @@
+/target
+
+# Personal data: your own rules and move log
+.local/
+
+# Private development workflow (AI Engineer OS) — kept on this machine only
+.ai/
+.claude/
+CLAUDE.md
+LESSONS.md

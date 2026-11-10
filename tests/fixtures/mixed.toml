@@ -1,0 +1,12 @@
+# Rules for the tests/fixtures/mixed fixture (used by tests/cli.rs).
+[[category]]
+name = "Screenshots"
+keywords = ["screenshot"]
+
+[[category]]
+name = "Images"
+extensions = ["jpg", "png"]
+
+[[category]]
+name = "Invoices"
+keywords = ["invoice"]

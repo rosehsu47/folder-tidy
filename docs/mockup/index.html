@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>檔案整理工具 · 產品示意</title>
+<!--
+  Product mockup for the folder-tidy file organizer (design reference for T-003 / T-007).
+  Self-contained: open this file directly in a browser. All data is sample data;
+  nothing here reads or moves real files.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C1D1F;--muted:#5F6368;--muted2:#44474C;--line:#E2E2DD;--line2:#ECECE8;--line3:#F2F2EF;
+  --ground:#F4F4F1;--panel:#FBFBF9;--white:#FFFFFF;--blue:#2560D6;--blue-d:#1A47A3;--blue-soft:#E8F0FE;
+  --red:#A82D57;--red-soft:#FBE8EF;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:'Noto Sans TC',system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+h1{margin:0 0 6px;font-size:26px;font-weight:700}
+h2{margin:0}
+p{margin:0}
+.sub{font-size:14px;color:var(--muted)}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:1 1 200px;max-width:100%;padding:24px 16px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 12px 20px;font-size:17px;font-weight:700}
+.tag{margin-left:auto;font-size:11px;font-weight:400;color:var(--muted);border:1px solid #D6D6D0;border-radius:4px;padding:1px 6px}
+.navbtn{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:0;border-radius:8px;font-size:14px;text-align:left;background:transparent;cursor:pointer;transition:background 120ms}
+.navbtn:hover{background:var(--line2)}
+.navbtn.on{background:var(--blue-soft);color:var(--blue-d);font-weight:700}
+.navbtn:disabled{color:#6B6E73;cursor:default;background:transparent}
+.badge{margin-left:auto;font-size:12px;background:var(--blue);color:#fff;border-radius:10px;padding:1px 8px;font-weight:400}
+.sep{height:1px;background:var(--line);margin:12px 8px}
+main{flex:999 1 560px;min-width:0;padding:32px clamp(16px,4vw,48px) 48px}
+.page{max-width:960px;display:flex;flex-direction:column;gap:20px;animation:fadein 160ms ease-out both}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid #D6D6D0;border-radius:10px;background:var(--white);font-size:14px;cursor:pointer;transition:background 120ms,transform 80ms}
+.btn:hover{background:var(--line2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.primary{background:var(--blue);color:#fff;border:0;font-weight:700;padding:0 24px}
+.btn.primary:hover{background:var(--blue-d)}
+.btn.danger{background:var(--red);color:#fff;border:0;font-weight:700}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px}
+.icon{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:transparent;cursor:pointer;color:var(--muted2)}
+.icon:hover{background:rgba(20,20,19,.07)}
+.icon.del{color:var(--red)}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;min-height:150px;border-radius:12px;border:2px solid var(--line);background:var(--white);text-align:left;cursor:pointer;transition:border-color 120ms,box-shadow 120ms}
+.card:hover{box-shadow:0 2px 10px rgba(20,20,19,.08)}
+.card.on{border-color:var(--blue);background:#F5F8FF}
+.card:disabled{opacity:.6;cursor:default;box-shadow:none}
+.card .ic{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;background:var(--line3);color:var(--muted2)}
+.card.on .ic{background:var(--blue);color:#fff}
+.card .nm{font-size:16px;font-weight:700}
+.card .pt{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.card .nt{margin-top:auto;font-size:13px;color:var(--muted2)}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:12px}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line2)}
+.bar>div{transition:width 200ms}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.groups{display:flex;flex-direction:column;gap:12px}
+.group{background:var(--white);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ghead{display:flex;align-items:center;gap:4px;min-height:52px;padding-right:8px}
+.gtoggle{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 8px 0 16px;border:0;background:transparent;text-align:left;cursor:pointer}
+.gtoggle .chev{transition:transform 120ms;flex:none}
+.gtitle{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcount{font-size:13px;color:var(--muted);flex:none}
+.gnote{margin-left:auto;font-size:13px;white-space:nowrap}
+.gedit{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 6px 16px}
+.gedit.confirm{background:var(--red-soft)}
+.gedit input{flex:1 1 180px;min-width:0;min-height:40px;padding:0 10px;border:2px solid var(--blue);border-radius:8px;font-size:15px;font-weight:700;background:#fff}
+.gbody{display:flex;flex-direction:column;border-top:1px solid var(--line2)}
+.empty{display:flex;align-items:center;gap:10px;padding:16px;margin:12px 16px;font-size:13px;color:var(--muted);border:2px dashed var(--line);border-radius:10px}
+.row{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 16px;min-height:56px;border-bottom:1px solid var(--line3);transition:background 100ms}
+.row:hover{background:#FAFAF8}
+.row .lead{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:12px}
+.cb{width:18px;height:18px;accent-color:var(--blue);flex:none;margin:0;cursor:pointer}
+.namebtn{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:transparent;padding:4px;margin:-4px;border-radius:8px;text-align:left;cursor:zoom-in}
+.namebtn:hover{background:rgba(37,96,214,.06)}
+.namebtn .eye{opacity:0;transition:opacity 100ms;flex:none}
+.namebtn:hover .eye,.namebtn:focus-visible .eye{opacity:1}
+.fname{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dest{min-height:36px;max-width:200px;padding:0 8px;border:1px solid transparent;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer}
+.dest.pending{border-color:#D9B24C}
+.tile{position:relative;width:42px;height:42px;flex:none;display:flex;justify-content:center}
+.tile .ext{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.02em}
+.th{width:42px;height:42px;flex:none;border-radius:6px;overflow:hidden}
+.th.shot{border:1px solid #D6D6D0;background:#fff;display:flex;flex-direction:column}
+.th.receipt{background:#E4E1D9;display:flex;align-items:center;justify-content:center}
+.th.video{background:#2A2B2E;display:flex;align-items:center;justify-content:center}
+.paper{width:24px;height:34px;padding:4px 3px;background:#fff;display:flex;flex-direction:column;gap:3px;transform:rotate(-4deg)}
+.stagewrap{overflow-x:auto;border-radius:14px}
+.stage{position:relative;width:880px;height:440px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.flyer{position:absolute;width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;animation:fly 700ms cubic-bezier(.45,0,.25,1) both}
+.flyer span{max-width:72px;font-size:10px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bin{position:absolute;top:316px;height:100px;border-radius:12px;border:2px solid var(--line);background:#FAFAF8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 6px;transition:background 150ms,border-color 150ms,transform 150ms}
+.bin b{max-width:100%;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bin small{font-size:12px;color:var(--muted2)}
+.done{position:absolute;left:0;right:0;top:0;height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;animation:fadein 160ms ease-out both}
+.rules{display:flex;flex-wrap:wrap;overflow:hidden}
+.rlist{flex:1 1 200px;display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line2);background:var(--panel)}
+.rlist .navbtn.on{background:var(--line2);color:var(--ink)}
+.addcat{margin-top:8px;border:1px dashed #C9C9C2;justify-content:flex-start;background:transparent}
+.rform{flex:999 1 420px;min-width:0;padding:24px;display:flex;flex-direction:column;gap:20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lbl{font-size:13px;font-weight:500;color:var(--muted2)}
+.hint{font-size:12px;color:var(--muted)}
+.txt{min-height:44px;padding:0 12px;border:1px solid #D6D6D0;border-radius:8px;font-family:var(--mono);font-size:14px;background:#fff}
+.txt.sm{min-height:36px;font-size:13px;padding:0 10px;border-radius:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:2px;padding-left:10px;border-radius:6px;background:var(--line3);font-size:13px}
+.chip.mono{font-family:var(--mono)}
+.chip button{width:28px;height:28px;border:0;border-radius:6px;background:transparent;font-size:15px;cursor:pointer}
+.chip button:hover{background:rgba(20,20,19,.08)}
+.hist{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px}
+.hist .bar{flex:1 1 200px;height:10px}
+.backdrop{position:fixed;inset:0;border:0;padding:0;background:rgba(20,20,19,.28);cursor:default}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(500px,100vw);background:#fff;box-shadow:-8px 0 32px rgba(20,20,19,.16);display:flex;flex-direction:column;animation:slidein 160ms ease-out both}
+.dhead{display:flex;align-items:center;gap:12px;padding:16px 12px 16px 24px;border-bottom:1px solid var(--line2)}
+.dbody{flex:1 1 auto;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
+.big{height:300px;flex:none;border-radius:12px;background:var(--line3);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.decide{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;background:var(--panel);border:1px solid var(--line2)}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:8px 16px;font-size:13px}
+dt{color:var(--muted)}dd{margin:0}
+.dfoot{display:flex;gap:8px;padding:12px 24px 20px;border-top:1px solid var(--line2)}
+.dfoot .btn{flex:1}
+.kbd{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;padding:0 24px 12px}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1}55%{transform:translate(calc(var(--dx) * .55),calc(var(--dy) * .55 - 70px)) scale(1.08) rotate(-6deg);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes slidein{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.flyer{animation-duration:1ms}.page,.drawer,.done{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+// ---------- sample data (illustrative only) ----------
+var CATS = [
+  { id: 'doc', name: '文件', color: '#2560D6', soft: '#E8F0FE' },
+  { id: 'shot', name: '截圖', color: '#0A6E64', soft: '#E0F3EF' },
+  { id: 'video', name: '影片', color: '#6440B8', soft: '#EFEAFB' },
+  { id: 'pkg', name: '安裝檔', color: '#A14C08', soft: '#FCEFE3' },
+  { id: 'receipt', name: '收據', color: '#A82D57', soft: '#FBE8EF' }
+];
+var EXTRA_COLORS = [
+  { color: '#3B6A1E', soft: '#EAF3E2' }, { color: '#1D5D88', soft: '#E3F0F8' }, { color: '#7A5200', soft: '#FFF3D6' },
+  { color: '#8A3B8F', soft: '#F6E7F7' }, { color: '#4A5560', soft: '#ECEFF2' }
+];
+var GRAY = { color: '#5F6368', soft: '#EEF0F2' };
+var NONE = '__none';
+var FILES = [
+  { id: 1, name: '報價單_v3.pdf', ext: 'PDF', size: '1.2 MB', cat: 'doc', by: 'rule', why: '規則：副檔名 .pdf', pv: 'doc', date: '2026-10-29', excerpt: '報價單\n客戶：[客戶名稱]\n項目：[項目說明]\n報價金額：[金額]\n有效期限：[日期]' },
+  { id: 2, name: '會議紀錄.docx', ext: 'DOCX', size: '84 KB', cat: 'doc', by: 'rule', why: '規則：副檔名 .docx', pv: 'doc', date: '2026-10-30', excerpt: '會議紀錄\n日期：[日期]\n出席：[出席者]\n\n1. [議題]\n2. [議題]' },
+  { id: 3, name: '履歷_2026.pdf', ext: 'PDF', size: '310 KB', cat: 'doc', by: 'rule', why: '規則：副檔名 .pdf', pv: 'doc', date: '2026-09-12', excerpt: '[姓名]\n[職稱]\n\n工作經歷\n[公司] · [期間]\n[公司] · [期間]' },
+  { id: 4, name: '預算表.xlsx', ext: 'XLSX', size: '56 KB', cat: 'doc', by: 'rule', why: '規則：副檔名 .xlsx', pv: 'doc', date: '2026-10-05', excerpt: '工作表 1\n項目 | 金額\n[項目] | [金額]\n[項目] | [金額]\n合計 | [金額]' },
+  { id: 5, name: '螢幕快照 2026-10-01 下午3.12.png', ext: 'PNG', size: '2.1 MB', cat: 'shot', by: 'rule', why: '規則：檔名包含「螢幕快照」', ym: '2026-10', pv: 'shot', date: '2026-10-01' },
+  { id: 6, name: '螢幕快照 2026-10-14 上午9.40.png', ext: 'PNG', size: '1.8 MB', cat: 'shot', by: 'rule', why: '規則：檔名包含「螢幕快照」', ym: '2026-10', pv: 'shot', date: '2026-10-14' },
+  { id: 7, name: 'Screenshot 2026-11-02.png', ext: 'PNG', size: '940 KB', cat: 'shot', by: 'rule', why: '規則：檔名包含「Screenshot」', ym: '2026-11', pv: 'shot', date: '2026-11-02' },
+  { id: 8, name: '螢幕快照 2026-11-03 晚上10.05.png', ext: 'PNG', size: '1.1 MB', cat: 'shot', by: 'rule', why: '規則：檔名包含「螢幕快照」', ym: '2026-11', pv: 'shot', date: '2026-11-03' },
+  { id: 9, name: '畫面錄製 2026-10-20.mov', ext: 'MOV', size: '48 MB', cat: 'video', by: 'rule', why: '規則：副檔名 .mov', ym: '2026-10', pv: 'video', date: '2026-10-20' },
+  { id: 10, name: 'demo.mp4', ext: 'MP4', size: '12 MB', cat: 'video', by: 'rule', why: '規則：副檔名 .mp4', ym: '2026-09', pv: 'video', date: '2026-09-18' },
+  { id: 11, name: 'Figma-125.4.dmg', ext: 'DMG', size: '210 MB', cat: 'pkg', by: 'rule', why: '規則：副檔名 .dmg', pv: 'pkg', date: '2026-10-08' },
+  { id: 12, name: 'Docker.dmg', ext: 'DMG', size: '590 MB', cat: 'pkg', by: 'rule', why: '規則：副檔名 .dmg', pv: 'pkg', date: '2026-08-21' },
+  { id: 13, name: 'scan_0042.jpg', ext: 'JPG', size: '2.4 MB', cat: 'receipt', by: 'ai', why: 'AI：「影像裡有統一編號和金額，像是發票」', ym: '2026-10', pv: 'receipt', date: '2026-10-17' },
+  { id: 14, name: '未命名.txt', ext: 'TXT', size: '4 KB', cat: 'doc', by: 'ai', why: 'AI：「內容是會議待辦事項」', pv: 'doc', date: '2026-11-01', excerpt: '- [待辦事項]\n- [待辦事項]\n- [待辦事項]' },
+  { id: 15, name: 'random.bin', ext: 'BIN', size: '88 KB', cat: null, by: 'none', why: '規則與 AI 都無法判斷', pv: 'bin', date: '2026-07-02' },
+  { id: 16, name: 'data_0921', ext: '?', size: '12 KB', cat: null, by: 'none', why: '沒有副檔名', pv: 'bin', date: '2026-09-21' }
+];
+var HEX = '00000000  [位元組 ×16]\n00000010  [位元組 ×16]\n00000020  [位元組 ×16]\n00000030  [位元組 ×16]';
+var SOURCES = [
+  { id: 'desktop', name: '桌面', path: '~/Desktop', note: '範例 16 個檔案', icon: 'desktop' },
+  { id: 'downloads', name: '下載', path: '~/Downloads', note: '範例 16 個檔案', icon: 'download' },
+  { id: 'icloud', name: 'iCloud Drive', path: 'iCloud Drive/', note: '包含 iPhone 同步過來的檔案', icon: 'cloud' },
+  { id: 'iphone', name: 'iPhone 主畫面', path: '透過 USB 連接', note: '之後提供', icon: 'phone', disabled: true }
+];
+var STEP = 80;
+
+// ---------- icons ----------
+function svg(d, size, extra) {
+  return '<svg width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + d + '</svg>';
+}
+var I = {
+  logo: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M8 13l3 3 5-6"></path>',
+  desktop: '<rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path>',
+  cloud: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"></path>',
+  phone: '<rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path>',
+  preview: '<path d="M4 6h16M4 12h10M4 18h7"></path><path d="M17 15l2 2 3-4"></path>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle>',
+  clock: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path>',
+  chev: '<path d="M9 6l6 6-6 6"></path>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13M9 7V4h6v3"></path>',
+  newfolder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 10v6M9 13h6"></path>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"></path>',
+  eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path><circle cx="12" cy="12" r="2.5"></circle>',
+  close: '<path d="M6 6l12 12M18 6L6 18"></path>',
+  left: '<path d="M15 6l-6 6 6 6"></path>',
+  right: '<path d="M9 6l6 6-6 6"></path>',
+  undo: '<path d="M9 14L4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path>',
+  plus: '<path d="M12 5v14M5 12h14"></path>',
+  check: '<circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6.5"></path>',
+  pkg: '<path d="M12 2l9 5v10l-9 5-9-5V7z"></path><path d="M3 7l9 5 9-5M12 12v10"></path>'
+};
+function folderIcon(color, w, h) {
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 24 20" aria-hidden="true" style="flex:none"><path d="M1 3a2 2 0 0 1 2-2h5l2 2h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" fill="' + color + '"></path></svg>';
+}
+function docIcon(c, w, h) {
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 34 42" aria-hidden="true"><path d="M1.5 1.5h21l10 10v29h-31z" fill="' + c.soft + '" stroke="' + c.color + '" stroke-width="1.5" stroke-linejoin="round"></path><path d="M22.5 1.5v10h10" fill="none" stroke="' + c.color + '" stroke-width="1.5" stroke-linejoin="round"></path></svg>';
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+// ---------- state ----------
+var S = (function () {
+  var checked = {}, assign = {};
+  FILES.forEach(function (f) { checked[f.id] = f.by === 'rule'; assign[f.id] = f.cat; });
+  return {
+    screen: 'source', source: 'desktop', scanned: false,
+    folders: CATS.map(function (c) { return Object.assign({}, c); }), colorIx: 0,
+    assign: assign, manual: {}, checked: checked, collapsed: {},
+    editing: null, draftName: '', confirmDel: null, previewId: null,
+    phase: 'idle', tick: 0, moving: [], lastCount: 0,
+    history: [
+      { id: 'h2', when: '11/02 21:14', source: '下載', count: 27, undone: false, segs: [{ color: '#2560D6', pct: 33.3 }, { color: '#A14C08', pct: 40.7 }, { color: '#0A6E64', pct: 26 }] },
+      { id: 'h1', when: '10/28 09:03', source: '桌面', count: 19, undone: false, segs: [{ color: '#0A6E64', pct: 63.2 }, { color: '#2560D6', pct: 26.3 }, { color: '#6440B8', pct: 10.5 }] }
+    ],
+    rules: {
+      doc: { folder: '文件/', exts: ['pdf', 'docx', 'xlsx', 'pptx'], keywords: [], date: 'any' },
+      shot: { folder: '截圖/{年}-{月}/', exts: ['png'], keywords: ['螢幕快照', 'Screenshot'], date: 'any' },
+      video: { folder: '影片/', exts: ['mov', 'mp4'], keywords: ['畫面錄製'], date: 'any' },
+      pkg: { folder: '安裝檔/', exts: ['dmg', 'pkg', 'zip'], keywords: [], date: 'any' },
+      receipt: { folder: '收據/', exts: [], keywords: ['發票', '收據', 'invoice'], date: 'any' }
+    },
+    selCat: 'shot', draftExt: '', excluded: ['~/Documents/報稅', '~/Desktop/私人', '*.key'], draftEx: ''
+  };
+})();
+var timer = null;
+
+function set(patch) { Object.assign(S, patch); render(); }
+function folder(id) { for (var i = 0; i < S.folders.length; i++) if (S.folders[i].id === id) return S.folders[i]; return null; }
+function fileById(id) { return FILES.filter(function (f) { return f.id === id; })[0]; }
+function aiPending(f) { return f.by === 'ai' && !S.manual[f.id]; }
+function dest(f) { var a = S.assign[f.id]; return a && folder(a) ? a : null; }
+function movingList() { return FILES.filter(function (f) { return dest(f) && S.checked[f.id]; }); }
+function colorOf(f) { var d = dest(f); return d ? folder(d) : GRAY; }
+function targetPath(f) {
+  var id = dest(f); if (!id) return '不搬';
+  var p = (S.rules[id] || {}).folder || (folder(id).name + '/');
+  return p.replace('{年}-{月}', f.ym || '2026-11');
+}
+function sourceObj() { return SOURCES.filter(function (x) { return x.id === S.source; })[0]; }
+function folderOrder() {
+  var out = [];
+  S.folders.forEach(function (fo) { FILES.forEach(function (f) { if (!aiPending(f) && dest(f) === fo.id) out.push(f); }); });
+  FILES.forEach(function (f) { if (aiPending(f)) out.push(f); });
+  FILES.forEach(function (f) { if (!aiPending(f) && !dest(f)) out.push(f); });
+  return out;
+}
+
+// ---------- actions ----------
+function go(screen) { if (S.phase === 'flying') return; set({ screen: screen, editing: null, confirmDel: null, previewId: null, phase: S.phase === 'done' ? 'idle' : S.phase }); }
+function toggleFile(id) { S.checked[id] = !S.checked[id]; render(); }
+function reassignFile(id, v) { S.assign[id] = v === NONE ? null : v; S.manual[id] = true; S.checked[id] = v !== NONE; render(); }
+function newFolder(base) {
+  var c = EXTRA_COLORS[S.colorIx % EXTRA_COLORS.length]; S.colorIx++;
+  var id = 'f' + Date.now();
+  S.rules[id] = { folder: base + '/', exts: [], keywords: [], date: 'any' };
+  var fo = { id: id, name: base, color: c.color, soft: c.soft, custom: true };
+  S.folders.push(fo); return fo;
+}
+function deleteFolder(id) {
+  if (S.folders.length <= 1) return;
+  for (var k in S.assign) if (S.assign[k] === id) { S.assign[k] = null; S.checked[k] = false; }
+  S.folders = S.folders.filter(function (c) { return c.id !== id; });
+  set({ confirmDel: null, editing: null, selCat: S.selCat === id ? S.folders[0].id : S.selCat });
+}
+function commitName() {
+  var id = S.editing; if (!id) return;
+  var name = S.draftName.trim().replace(/\//g, '');
+  if (name) {
+    var fo = folder(id); if (fo) fo.name = name;
+    if (S.rules[id]) S.rules[id].folder = S.rules[id].folder.replace(/^[^/]*/, name);
+  }
+  set({ editing: null });
+}
+function startApply() {
+  var moving = movingList(); if (!moving.length) return;
+  var snap = moving.map(function (f) { return { name: f.name, dest: dest(f) }; });
+  clearInterval(timer);
+  set({ phase: 'flying', tick: 0, moving: snap, screen: 'stage', editing: null, previewId: null });
+  timer = setInterval(function () {
+    S.tick++;
+    if (S.tick >= snap.length + 12) {
+      clearInterval(timer); timer = null;
+      var counts = {}; snap.forEach(function (m) { counts[m.dest] = (counts[m.dest] || 0) + 1; });
+      var segs = S.folders.filter(function (fo) { return counts[fo.id]; }).map(function (fo) { return { color: fo.color, pct: counts[fo.id] / snap.length * 100 }; });
+      S.history.unshift({ id: 'h' + Date.now(), when: '剛剛', source: sourceObj().name, count: snap.length, undone: false, segs: segs });
+      set({ phase: 'done', lastCount: snap.length });
+    } else { updateBins(); }
+  }, STEP);
+}
+function undo(id) { S.history.forEach(function (h) { if (h.id === id) h.undone = true; }); render(); }
+
+var ACT = {
+  nav: function (d) { go(d.to); },
+  pickSource: function (d) { set({ source: d.id }); },
+  scan: function () { set({ scanned: true, screen: 'preview', phase: 'idle' }); },
+  selectAll: function () { FILES.forEach(function (f) { S.checked[f.id] = !!dest(f); }); render(); },
+  apply: function () { if (S.editing) commitName(); startApply(); },
+  addFolder: function () { var k = S.folders.filter(function (f) { return f.custom; }).length + 1; var fo = newFolder('新資料夾 ' + k); set({ editing: fo.id, draftName: fo.name }); },
+  toggleGroup: function (d) { S.collapsed[d.key] = !S.collapsed[d.key]; render(); },
+  startEdit: function (d) { set({ editing: d.key, draftName: folder(d.key).name, confirmDel: null }); },
+  commitName: function () { commitName(); },
+  cancelName: function () { set({ editing: null }); },
+  startDelete: function (d) {
+    var n = FILES.filter(function (f) { return S.assign[f.id] === d.key; }).length;
+    if (n === 0) deleteFolder(d.key); else set({ confirmDel: d.key, editing: null });
+  },
+  confirmDelete: function (d) { deleteFolder(d.key); },
+  cancelDelete: function () { set({ confirmDel: null }); },
+  openPv: function (d) { set({ previewId: +d.id }); },
+  closePv: function () { set({ previewId: null }); },
+  pvStep: function (d) { stepPreview(+d.dir); },
+  undo: function (d) { undo(d.id); },
+  undoLast: function () { if (S.history[0]) S.history[0].undone = true; go('history'); },
+  again: function () { set({ screen: 'source', scanned: false, phase: 'idle', tick: 0 }); },
+  pickCat: function (d) { set({ selCat: d.id, draftExt: '' }); },
+  addCat: function () { var k = S.folders.filter(function (f) { return f.custom; }).length + 1; var fo = newFolder('新分類 ' + k); set({ selCat: fo.id }); },
+  removeCat: function () { deleteFolder(S.selCat); },
+  rmExt: function (d) { var r = S.rules[S.selCat]; r.exts = r.exts.filter(function (e) { return e !== d.v; }); render(); },
+  rmKw: function (d) { var r = S.rules[S.selCat]; r.keywords = r.keywords.filter(function (e) { return e !== d.v; }); render(); },
+  addExt: function () { var v = S.draftExt.trim().replace(/^\./, '').toLowerCase(); var r = S.rules[S.selCat]; if (v && r.exts.indexOf(v) < 0) r.exts.push(v); set({ draftExt: '' }); },
+  rmEx: function (d) { S.excluded = S.excluded.filter(function (e) { return e !== d.v; }); render(); },
+  addEx: function () { var v = S.draftEx.trim(); if (v && S.excluded.indexOf(v) < 0) S.excluded.push(v); set({ draftEx: '' }); }
+};
+function stepPreview(dir) {
+  var order = folderOrder(); var ix = order.indexOf(fileById(S.previewId)); var j = ix + dir;
+  if (j >= 0 && j < order.length) set({ previewId: order[j].id });
+}
+
+// ---------- views ----------
+function navBtn(key, icon, label, extra) {
+  var on = S.screen === key || (key === 'preview' && S.screen === 'stage');
+  return '<button class="navbtn' + (on ? ' on' : '') + '" data-act="nav" data-to="' + key + '">' + svg(I[icon]) + label + (extra || '') + '</button>';
+}
+function viewNav() {
+  return '<nav class="side" aria-label="主選單">' +
+    '<div class="brand"><span style="color:var(--blue);display:flex">' + svg(I.logo, 26) + '</span>整理<span class="tag">範例資料</span></div>' +
+    navBtn('source', 'desktop', '來源') +
+    navBtn('preview', 'preview', '預覽', S.scanned ? '<span class="badge">' + movingList().length + '</span>' : '') +
+    navBtn('rules', 'sliders', '分類設定') +
+    navBtn('history', 'clock', '紀錄') +
+    '<div class="sep"></div>' +
+    '<button class="navbtn" disabled>' + svg(I.phone) + 'iPhone<span style="margin-left:auto;font-size:11px">之後提供</span></button>' +
+    '</nav>';
+}
+function viewSource() {
+  var cards = SOURCES.map(function (x) {
+    return '<button class="card' + (x.id === S.source ? ' on' : '') + '" data-act="pickSource" data-id="' + x.id + '"' + (x.disabled ? ' disabled' : '') + '>' +
+      '<span class="ic">' + svg(I[x.icon], 22) + '</span>' +
+      '<span style="display:flex;flex-direction:column;gap:4px"><span class="nm">' + esc(x.name) + '</span><span class="pt">' + esc(x.path) + '</span></span>' +
+      '<span class="nt">' + esc(x.note) + '</span></button>';
+  }).join('');
+  return '<section class="page"><div><h1>要整理哪裡？</h1><p class="sub">選一個來源，掃描後會先給你看整理計畫，確認之前不會搬動任何檔案。</p></div>' +
+    '<div class="cards">' + cards + '</div>' +
+    '<div class="actions" style="align-items:center;gap:16px"><button class="btn primary" data-act="scan">掃描「' + esc(sourceObj().name) + '」</button><span style="font-size:13px;color:var(--muted)">掃描只讀取檔名與屬性，不會搬動檔案</span></div></section>';
+}
+function thumb(f, c) {
+  if (f.pv === 'shot') return '<span class="th shot"><span style="height:7px;background:#E6E6E1"></span><span style="flex:1;display:flex;gap:3px;padding:3px"><span style="width:9px;background:' + c.soft + ';border-radius:2px"></span><span style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="height:4px;background:#D6D6D0;border-radius:2px"></span><span style="height:4px;width:70%;background:#E2E2DD;border-radius:2px"></span><span style="flex:1;background:' + c.soft + ';border-radius:2px"></span></span></span></span>';
+  if (f.pv === 'receipt') return '<span class="th receipt"><span class="paper"><span style="height:3px;background:#44474C"></span><span style="height:2px;width:70%;background:#C9C9C2"></span><span style="height:2px;background:#C9C9C2"></span><span style="height:2px;background:#C9C9C2"></span><span style="margin-top:auto;height:3px;width:60%;align-self:flex-end;background:#44474C"></span></span></span>';
+  if (f.pv === 'video') return '<span class="th video"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#fff"></path></svg></span>';
+  return '<span class="tile">' + docIcon(c, 34, 42) + '<span class="ext" style="color:' + c.color + '">' + esc(f.ext) + '</span></span>';
+}
+function destSelect(f, c, id, extraClass, extraStyle) {
+  var cur = dest(f) || NONE;
+  var opts = S.folders.map(function (fo) { return '<option value="' + fo.id + '"' + (fo.id === cur ? ' selected' : '') + '>' + esc(fo.name) + '/</option>'; }).join('') +
+    '<option value="' + NONE + '"' + (cur === NONE ? ' selected' : '') + '>不搬（留在原處）</option>';
+  return '<select class="dest' + (extraClass || '') + '" data-change="dest" data-id="' + f.id + '"' + (id ? ' id="' + id + '"' : '') + ' aria-label="' + esc(f.name) + ' 的目的地" title="' + esc(targetPath(f)) + '" style="background:' + c.soft + ';color:' + c.color + (extraStyle ? ';' + extraStyle : '') + '">' + opts + '</select>';
+}
+function fileRow(f) {
+  var d = dest(f); var c = colorOf(f);
+  var why = S.manual[f.id] ? '手動指定' : f.why;
+  var check = d ? '<input type="checkbox" class="cb" data-change="check" data-id="' + f.id + '"' + (S.checked[f.id] ? ' checked' : '') + ' aria-label="搬移 ' + esc(f.name) + '">' : '<span style="width:18px;flex:none"></span>';
+  return '<div class="row"><span class="lead">' + check +
+    '<button class="namebtn" data-act="openPv" data-id="' + f.id + '" title="預覽">' + thumb(f, c) +
+    '<span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto"><span class="fname">' + esc(f.name) + '</span><span class="fmeta">' + esc(f.size) + ' · ' + esc(why) + '</span></span>' +
+    '<span class="eye" style="color:var(--muted);display:flex">' + svg(I.eye) + '</span></button></span>' +
+    '<span style="display:inline-flex;align-items:center;gap:6px;flex:none;opacity:' + (d && !S.checked[f.id] ? .55 : 1) + ';color:' + c.color + '">' + svg(I.arrow, 14) + destSelect(f, c, null, aiPending(f) ? ' pending' : '') + '</span></div>';
+}
+function group(key, title, color, files, opt) {
+  var open = !S.collapsed[key];
+  var head;
+  if (S.editing === key) {
+    head = '<div class="gedit">' + folderIcon(color, 20, 16) +
+      '<input data-input="draftName" data-key="rename" data-autofocus value="' + esc(S.draftName) + '" aria-label="資料夾名稱">' +
+      '<button class="btn primary sm" data-act="commitName">完成</button><button class="btn sm" data-act="cancelName">取消</button></div>';
+  } else if (S.confirmDel === key) {
+    var n = FILES.filter(function (f) { return S.assign[f.id] === key; }).length;
+    head = '<div class="gedit confirm"><span style="color:var(--red);display:flex">' + svg(I.trash) + '</span>' +
+      '<span style="flex:1 1 200px;font-size:14px">刪除「' + esc(title) + '」？裡面 ' + n + ' 個檔案會改成「不搬」，檔案本身不會被刪。</span>' +
+      '<button class="btn danger sm" data-act="confirmDelete" data-key="' + key + '">刪除</button><button class="btn sm" data-act="cancelDelete">取消</button></div>';
+  } else {
+    head = '<button class="gtoggle" data-act="toggleGroup" data-key="' + key + '" aria-expanded="' + open + '">' +
+      '<span class="chev" style="color:var(--muted);display:flex;transform:rotate(' + (open ? 90 : 0) + 'deg)">' + svg(I.chev, 14) + '</span>' +
+      folderIcon(color, 20, 16) + '<span class="gtitle">' + esc(title) + '</span><span class="gcount">' + files.length + ' 個</span>' +
+      '<span class="gnote" style="color:' + (opt.noteColor || 'var(--muted)') + '">' + esc(opt.note || '') + '</span></button>' +
+      (opt.canEdit ? '<button class="icon" data-act="startEdit" data-key="' + key + '" aria-label="重新命名 ' + esc(title) + '" title="重新命名">' + svg(I.pencil, 16) + '</button>' : '') +
+      (opt.canEdit && S.folders.length > 1 ? '<button class="icon del" data-act="startDelete" data-key="' + key + '" aria-label="刪除 ' + esc(title) + '" title="刪除資料夾">' + svg(I.trash, 16) + '</button>' : '');
+  }
+  var body = '';
+  if (open) {
+    body = '<div class="gbody">' +
+      (files.length === 0 ? '<div class="empty">' + svg(I.arrow, 16) + '還是空的。把任何檔案右邊的目的地改成「' + esc(title) + '」，它就會搬到這裡。</div>' : '') +
+      files.map(fileRow).join('') + '</div>';
+  }
+  return '<div class="group" style="border-color:' + (opt.border || 'var(--line)') + '"><div class="ghead" style="background:' + (opt.headBg || '#fff') + '">' + head + '</div>' + body + '</div>';
+}
+function viewPreview() {
+  if (!S.scanned) {
+    return '<section class="page" style="max-width:720px;padding:64px 0;align-items:flex-start"><h1>還沒有整理計畫</h1><p class="sub">先到「來源」選一個資料夾並掃描。</p><button class="btn primary" data-act="nav" data-to="source">選擇來源</button></section>';
+  }
+  var moving = movingList(); var counts = {};
+  moving.forEach(function (f) { var d = dest(f); counts[d] = (counts[d] || 0) + 1; });
+  var used = S.folders.filter(function (fo) { return counts[fo.id]; });
+  var bar = used.map(function (fo) { return '<div style="width:' + (counts[fo.id] / moving.length * 100) + '%;background:' + fo.color + '"></div>'; }).join('');
+  var legend = used.map(function (fo) { return '<span><span class="sw" style="background:' + fo.color + '"></span>' + esc(fo.name) + ' ' + counts[fo.id] + '</span>'; }).join('');
+  var groups = '';
+  S.folders.forEach(function (fo) {
+    var fs = FILES.filter(function (f) { return !aiPending(f) && dest(f) === fo.id; });
+    if (fs.length || fo.custom) groups += group(fo.id, fo.name, fo.color, fs, { canEdit: true, note: fo.custom ? '新資料夾' : '' });
+  });
+  var ai = FILES.filter(aiPending);
+  if (ai.length) groups += group('ai', 'AI 建議', '#8A5A00', ai, { note: '預設不勾選，勾了或改目的地才會搬', noteColor: '#7A4E00', border: '#EBD9A8', headBg: '#FFF9EA' });
+  var none = FILES.filter(function (f) { return !aiPending(f) && !dest(f); });
+  if (none.length) groups += group('none', '不搬', '#9A9DA1', none, { note: '留在原處，可以改目的地' });
+  return '<section class="page"><div class="head"><div><h1>整理預覽</h1><p class="sub">' + esc(sourceObj().name) + ' · ' + FILES.length + ' 個檔案 · 點檔名可預覽，用右邊的選單改目的地</p></div>' +
+    '<div class="actions"><button class="btn" data-act="addFolder">' + svg(I.newfolder, 16) + '新增資料夾</button><button class="btn" data-act="selectAll">全選</button>' +
+    '<button class="btn primary" data-act="apply"' + (moving.length ? '' : ' disabled') + '>確認搬移 ' + moving.length + ' 個</button></div></div>' +
+    '<div class="panel" style="display:flex;flex-direction:column;gap:10px;padding:16px"><div class="bar" role="img" aria-label="各資料夾檔案比例">' + bar + '</div><div class="legend">' + legend + '</div></div>' +
+    '<div class="groups">' + groups + '</div></section>';
+}
+function stageGeometry() {
+  var list = S.moving;
+  var used = S.folders.filter(function (fo) { return list.some(function (m) { return m.dest === fo.id; }); });
+  var n = Math.max(used.length, 1), gap = 16;
+  var bw = Math.min(140, (796 - (n - 1) * gap) / n), x0 = (880 - (n * bw + (n - 1) * gap)) / 2;
+  var binX = {}; used.forEach(function (fo, i) { binX[fo.id] = x0 + i * (bw + gap); });
+  return { list: list, used: used, bw: bw, binX: binX };
+}
+function binState(fo) {
+  var total = 0, landed = 0;
+  S.moving.forEach(function (m, i) { if (m.dest === fo.id) { total++; if (S.tick >= i + 9) landed++; } });
+  return { total: total, landed: landed };
+}
+function updateBins() {
+  S.folders.forEach(function (fo) {
+    var el = document.querySelector('[data-bin="' + fo.id + '"]'); if (!el) return;
+    var b = binState(fo); var hit = b.landed > 0;
+    el.style.borderColor = hit ? fo.color : ''; el.style.background = hit ? fo.soft : '';
+    el.style.transform = hit && b.landed < b.total ? 'scale(1.04)' : 'scale(1)';
+    el.querySelector('small').textContent = b.landed + ' / ' + b.total;
+  });
+}
+function viewStage() {
+  var g = stageGeometry(); var flying = S.phase === 'flying';
+  var flyers = flying ? g.list.map(function (m, i) {
+    var fo = folder(m.dest) || GRAY;
+    var sx = 40 + (i % 8) * 102, sy = 28 + Math.floor(i / 8) * 96;
+    var dx = g.binX[m.dest] + g.bw / 2 - (sx + 36), dy = 366 - (sy + 30);
+    return '<div class="flyer" style="left:' + sx + 'px;top:' + sy + 'px;--dx:' + dx + 'px;--dy:' + dy + 'px;animation-delay:' + (i * STEP) + 'ms">' + docIcon(fo, 44, 54) + '<span>' + esc(m.name) + '</span></div>';
+  }).join('') : '';
+  var bins = g.used.map(function (fo) {
+    var b = binState(fo); var hit = b.landed > 0;
+    return '<div class="bin" data-bin="' + fo.id + '" style="left:' + g.binX[fo.id] + 'px;width:' + g.bw + 'px' + (hit ? ';border-color:' + fo.color + ';background:' + fo.soft : '') + '">' + folderIcon(fo.color, 34, 28) + '<b>' + esc(fo.name) + '</b><small>' + b.landed + ' / ' + b.total + '</small></div>';
+  }).join('');
+  var done = S.phase === 'done' ? '<div class="done"><span style="color:#0A6E64;display:flex">' + svg(I.check, 48, ' stroke-width="2"') + '</span><span style="font-size:18px;font-weight:700">已整理 ' + S.lastCount + ' 個檔案</span>' +
+    '<div class="actions"><button class="btn" data-act="undoLast">復原這次</button><button class="btn" data-act="nav" data-to="history">查看紀錄</button><button class="btn primary" data-act="again">再整理一個</button></div></div>' : '';
+  return '<section class="page"><div><h1>' + (flying ? '整理中…' : '整理完成') + '</h1><p class="sub">' + (flying ? '檔案正在搬進各資料夾' : '所有搬移都記在「紀錄」，隨時可以復原') + '</p></div>' +
+    '<div class="stagewrap"><div class="stage">' + flyers + bins + done + '</div></div></section>';
+}
+function viewRules() {
+  var cc = folder(S.selCat) || S.folders[0]; var r = S.rules[cc.id]; var locked = S.folders.length <= 1;
+  var list = S.folders.map(function (c) { return '<button class="navbtn' + (c.id === cc.id ? ' on' : '') + '" data-act="pickCat" data-id="' + c.id + '"><span class="sw" style="width:12px;height:12px;background:' + c.color + '"></span>' + esc(c.name) + '</button>'; }).join('');
+  var exts = r.exts.map(function (v) { return '<span class="chip mono" style="background:' + cc.soft + ';color:' + cc.color + '">.' + esc(v) + '<button data-act="rmExt" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>'; }).join('');
+  var kws = r.keywords.length ? r.keywords.map(function (v) { return '<span class="chip">' + esc(v) + '<button data-act="rmKw" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>'; }).join('') : '<span style="font-size:13px;color:var(--muted)">沒有關鍵字規則</span>';
+  var dateOpts = [['any', '不限'], ['week', '一週內'], ['month', '一個月內'], ['year', '超過一年']].map(function (o) { return '<option value="' + o[0] + '"' + (r.date === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  var ex = S.excluded.map(function (v) { return '<span class="chip mono">' + esc(v) + '<button data-act="rmEx" data-v="' + esc(v) + '" aria-label="移除 ' + esc(v) + '">×</button></span>'; }).join('');
+  return '<section class="page"><div><h1>分類設定</h1><p class="sub">規則由上到下比對；規則都抓不到的檔案，才會交給 AI 建議。</p></div>' +
+    '<div class="panel rules"><div class="rlist">' + list + '<button class="btn addcat" data-act="addCat">' + svg(I.plus, 14) + '新增分類</button></div>' +
+    '<div class="rform"><div style="display:flex;align-items:center;gap:10px"><span class="sw" style="width:14px;height:14px;border-radius:4px;background:' + cc.color + '"></span><h2 style="font-size:20px">' + esc(cc.name) + '</h2></div>' +
+    '<div class="field"><label for="folder">目標資料夾</label><input id="folder" class="txt" data-change="folder" value="' + esc(r.folder) + '"><span class="hint">可用 {年}-{月} 依修改日期分子資料夾；在預覽畫面改資料夾名稱，這裡也會跟著改</span></div>' +
+    '<div class="field"><span class="lbl">副檔名</span><div class="chips">' + exts + '<input class="txt sm" style="width:150px" data-input="draftExt" value="' + esc(S.draftExt) + '" aria-label="新增副檔名" placeholder="新增，例如 heic"><button class="btn sm" data-act="addExt">加入</button></div></div>' +
+    '<div class="field"><span class="lbl">檔名包含</span><div class="chips">' + kws + '</div></div>' +
+    '<div class="field"><label for="date">修改日期</label><select id="date" class="txt" style="max-width:240px;font-family:inherit" data-change="date">' + dateOpts + '</select></div>' +
+    '<div style="display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--line2)"><button class="btn" style="color:var(--red)" data-act="removeCat"' + (locked ? ' disabled title="至少要保留一個分類"' : '') + '>刪除分類</button></div></div></div>' +
+    '<div class="panel" style="display:flex;flex-direction:column;gap:10px;padding:20px"><div style="display:flex;align-items:center;gap:10px"><span style="color:var(--muted2);display:flex">' + svg(I.lock) + '</span><h2 style="font-size:16px">不送給 AI</h2></div>' +
+    '<p style="font-size:13px;color:var(--muted)">這些資料夾與副檔名只用規則分類，檔名與內容都不會送出。</p>' +
+    '<div class="chips">' + ex + '<input class="txt sm" style="width:190px" data-input="draftEx" value="' + esc(S.draftEx) + '" aria-label="新增排除項目" placeholder="資料夾或 *.副檔名"><button class="btn sm" data-act="addEx">加入</button></div></div></section>';
+}
+function viewHistory() {
+  var rows = S.history.map(function (h) {
+    var segs = h.segs.map(function (s) { return '<div style="width:' + s.pct + '%;background:' + s.color + '"></div>'; }).join('');
+    return '<div class="panel hist" style="opacity:' + (h.undone ? .6 : 1) + '"><div style="display:flex;flex-direction:column;gap:4px;min-width:160px"><span style="font-size:15px;font-weight:700">' + esc(h.source) + ' · ' + h.count + ' 個檔案</span><span style="font-size:12px;color:var(--muted)">' + esc(h.when) + (h.undone ? ' · 已復原' : '') + '</span></div>' +
+      '<div class="bar" role="img" aria-label="這次整理的分類比例">' + segs + '</div>' +
+      '<button class="btn" data-act="undo" data-id="' + h.id + '"' + (h.undone ? ' disabled' : '') + '>' + svg(I.undo, 16) + (h.undone ? '已復原' : '復原') + '</button></div>';
+  }).join('');
+  return '<section class="page"><div><h1>紀錄</h1><p class="sub">每次整理都會記下來，可以一鍵把檔案搬回原位。</p></div><div style="display:flex;flex-direction:column;gap:10px">' + rows + '</div></section>';
+}
+function bigPreview(f, c) {
+  if (f.pv === 'shot') return '<div style="width:400px;max-width:92%;height:250px;border-radius:8px;border:1px solid #D6D6D0;background:#fff;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 16px rgba(20,20,19,.10)">' +
+    '<div style="height:26px;flex:none;background:#ECECE8;display:flex;align-items:center;gap:6px;padding:0 10px"><span style="width:9px;height:9px;border-radius:50%;background:#C9C9C2"></span><span style="width:9px;height:9px;border-radius:50%;background:#C9C9C2"></span><span style="width:9px;height:9px;border-radius:50%;background:#C9C9C2"></span><span style="margin-left:12px;height:10px;width:140px;border-radius:5px;background:#fff"></span></div>' +
+    '<div style="flex:1;display:flex;gap:12px;padding:12px"><div style="width:80px;display:flex;flex-direction:column;gap:8px"><span style="height:10px;border-radius:3px;background:' + c.soft + '"></span><span style="height:10px;width:70%;border-radius:3px;background:#ECECE8"></span><span style="height:10px;width:85%;border-radius:3px;background:#ECECE8"></span><span style="height:10px;width:60%;border-radius:3px;background:#ECECE8"></span></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;gap:10px"><span style="height:16px;width:60%;border-radius:4px;background:#D6D6D0"></span><span style="height:8px;border-radius:4px;background:#ECECE8"></span><span style="height:8px;width:90%;border-radius:4px;background:#ECECE8"></span><div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><span style="border-radius:6px;background:' + c.soft + '"></span><span style="border-radius:6px;background:#ECECE8"></span><span style="border-radius:6px;background:#ECECE8"></span></div></div></div></div>';
+  if (f.pv === 'receipt') return '<div style="position:absolute;inset:0;background:#E4E1D9"></div><div style="position:relative;width:200px;height:270px;padding:18px 16px;background:#fff;box-shadow:0 6px 18px rgba(20,20,19,.18);transform:rotate(-3deg);display:flex;flex-direction:column;gap:8px;font-size:11px;color:#44474C">' +
+    '<span style="font-size:14px;font-weight:700;text-align:center;color:var(--ink)">電子發票證明聯</span><span style="text-align:center">[日期]</span><span style="text-align:center;font-family:var(--mono);font-weight:500;color:var(--ink)">[發票號碼]</span><span style="height:1px;background:#D6D6D0"></span>' +
+    '<span style="display:flex;justify-content:space-between"><span>[品項]</span><span>[金額]</span></span><span style="display:flex;justify-content:space-between"><span>[品項]</span><span>[金額]</span></span><span style="display:flex;justify-content:space-between"><span>[品項]</span><span>[金額]</span></span>' +
+    '<span style="margin-top:auto;height:1px;background:#D6D6D0"></span><span style="display:flex;justify-content:space-between;font-weight:700;color:var(--ink)"><span>總計</span><span>[總金額]</span></span>' +
+    '<span style="height:22px;background:repeating-linear-gradient(90deg,#1C1D1F 0 2px,transparent 2px 4px,#1C1D1F 4px 5px,transparent 5px 8px)"></span></div>';
+  if (f.pv === 'doc') return '<div style="width:230px;height:270px;padding:22px 20px;background:#fff;border:1px solid var(--line);box-shadow:0 4px 14px rgba(20,20,19,.08);display:flex;flex-direction:column;gap:10px;overflow:hidden"><span style="font-size:9px;font-weight:700;letter-spacing:.06em;color:' + c.color + '">' + esc(f.ext) + ' · 第 1 頁</span><span style="font-size:12px;line-height:1.7;white-space:pre-line">' + esc(f.excerpt || '') + '</span></div>';
+  if (f.pv === 'video') return '<div style="position:absolute;inset:0;background:#2A2B2E;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px"><span style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#fff"></path></svg></span><span style="font-size:13px;color:#D6D6D0">第一格畫面 · 長度 [mm:ss]</span></div>';
+  if (f.pv === 'pkg') return '<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px;text-align:center"><span style="color:' + c.color + ';display:flex">' + svg(I.pkg, 64, ' stroke-width="1.5"') + '</span><span style="font-size:14px;font-weight:700">磁碟映像檔</span><span style="font-size:13px;color:var(--muted)">內容需要掛載後才看得到，這裡只顯示檔案資訊</span></div>';
+  return '<div style="width:100%;height:100%;padding:20px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--muted2)">無法辨識格式，顯示前 64 bytes</span><span style="font-family:var(--mono);font-size:12px;line-height:1.8;white-space:pre">' + esc(HEX) + '</span></div>';
+}
+function viewDrawer() {
+  var f = fileById(S.previewId); if (!f || S.screen !== 'preview') return '';
+  var order = folderOrder(); var ix = order.indexOf(f); var d = dest(f); var c = colorOf(f);
+  var path = sourceObj().path.replace(/\/?$/, '/') + f.name;
+  return '<button class="backdrop" data-act="closePv" aria-label="關閉預覽" tabindex="-1"></button>' +
+    '<aside class="drawer" role="dialog" aria-label="檔案預覽">' +
+    '<div class="dhead"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px"><h2 style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(f.name) + '</h2><span style="font-size:12px;color:var(--muted)">' + (ix + 1) + ' / ' + order.length + '</span></div>' +
+    '<button class="icon" data-act="closePv" aria-label="關閉">' + svg(I.close, 18, ' stroke-width="2"') + '</button></div>' +
+    '<div class="dbody"><div class="big">' + bigPreview(f, c) + '</div>' +
+    '<div class="decide"><label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer"><input type="checkbox" class="cb" data-change="check" data-id="' + f.id + '"' + (S.checked[f.id] ? ' checked' : '') + (d ? '' : ' disabled') + '>搬移這個檔案</label>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label for="pvdest" style="font-size:13px;color:var(--muted2)">目的地</label>' + destSelect(f, c, 'pvdest', '', 'flex:1 1 180px;max-width:none;min-height:40px') + '</div>' +
+    '<span style="font-family:var(--mono);font-size:12px;color:var(--muted)">→ ' + esc(targetPath(f)) + '</span></div>' +
+    '<dl><dt>大小</dt><dd>' + esc(f.size) + '</dd><dt>修改日期</dt><dd>' + esc(f.date) + '</dd><dt>位置</dt><dd style="font-family:var(--mono);font-size:12px;word-break:break-all">' + esc(path) + '</dd><dt>判斷依據</dt><dd>' + esc(S.manual[f.id] ? '手動指定' : f.why) + '</dd></dl></div>' +
+    '<div class="dfoot"><button class="btn" data-act="pvStep" data-dir="-1"' + (ix <= 0 ? ' disabled' : '') + '>' + svg(I.left, 16, ' stroke-width="2"') + '上一個</button><button class="btn" data-act="pvStep" data-dir="1"' + (ix >= order.length - 1 ? ' disabled' : '') + '>下一個' + svg(I.right, 16, ' stroke-width="2"') + '</button></div>' +
+    '<div class="kbd">← → 切換 · Esc 關閉</div></aside>';
+}
+
+var VIEWS = { source: viewSource, preview: viewPreview, stage: viewStage, rules: viewRules, history: viewHistory };
+var app = document.getElementById('app');
+function render() {
+  app.innerHTML = '<div class="shell">' + viewNav() + '<main>' + VIEWS[S.screen]() + '</main>' + viewDrawer() + '</div>';
+  var af = app.querySelector('[data-autofocus]');
+  if (af) { af.focus(); af.select(); }
+}
+
+// ---------- events (delegated) ----------
+app.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
+  var fn = ACT[t.dataset.act]; if (fn) fn(t.dataset, e);
+});
+app.addEventListener('change', function (e) {
+  var t = e.target; var k = t.dataset.change; if (!k) return;
+  if (k === 'check') toggleFile(+t.dataset.id);
+  else if (k === 'dest') reassignFile(+t.dataset.id, t.value);
+  else if (k === 'folder') { S.rules[S.selCat].folder = t.value; render(); }
+  else if (k === 'date') { S.rules[S.selCat].date = t.value; render(); }
+});
+app.addEventListener('input', function (e) { var k = e.target.dataset.input; if (k) S[k] = e.target.value; });
+document.addEventListener('keydown', function (e) {
+  var t = e.target;
+  if (t.dataset && t.dataset.key === 'rename') {
+    if (e.key === 'Enter') { e.preventDefault(); commitName(); } else if (e.key === 'Escape') { set({ editing: null }); }
+    return;
+  }
+  if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
+  if (S.previewId != null && S.screen === 'preview') {
+    if (e.key === 'Escape') set({ previewId: null });
+    else if (e.key === 'ArrowLeft') stepPreview(-1);
+    else if (e.key === 'ArrowRight') stepPreview(1);
+  }
+});
+render();
+</script>
+</body>
+</html>
