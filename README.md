@@ -20,30 +20,53 @@ undone. The UI is in Traditional Chinese.
 ## 系統需求
 
 - macOS（使用 `renamex_np`、Quick Look 的 `qlmanage`、`osascript` 資料夾選擇視窗）
-- Rust 1.85 以上（edition 2024）
+- 從原始碼編譯才需要：Rust 1.85 以上（edition 2024）
 - 選用：已登入的 `claude` CLI，用於 AI 建議
 
-## 在本機執行
+## 安裝
 
-### 1. 編譯
+一個執行檔同時支援 Apple 晶片和 Intel Mac。
+
+### 用 Homebrew（建議）
 
 ```sh
-git clone <repo-url> folder-tidy
+brew install rosehsu47/tap/folder-tidy
+```
+
+### 直接下載
+
+到 [Releases](https://github.com/rosehsu47/folder-tidy/releases) 下載 `folder-tidy-<版本>-macos-universal.tar.gz`，然後：
+
+```sh
+tar -xzf folder-tidy-*-macos-universal.tar.gz
+cd folder-tidy-*-macos-universal
+xattr -d com.apple.quarantine folder-tidy   # 第一次執行前先做，見下方說明
+sudo mv folder-tidy /usr/local/bin/
+```
+
+這個執行檔沒有經過 Apple 公證（notarization）。用瀏覽器下載的檔案會被 macOS 標記，直接執行會跳出「無法打開」的視窗，所以要在**第一次執行之前**用上面的 `xattr` 指令拿掉標記。如果已經被擋過一次，重新解壓縮一份、先跑 `xattr` 再執行。用 Homebrew 或 `curl` 下載就沒有這個問題。
+
+### 從原始碼編譯
+
+需要 Rust 1.85 以上：
+
+```sh
+git clone https://github.com/rosehsu47/folder-tidy.git
 cd folder-tidy
 cargo build --release
 ```
 
-執行檔在 `./target/release/folder-tidy`。
+執行檔在 `./target/release/folder-tidy`。下面的指令都寫成 `folder-tidy`，從原始碼編譯的話換成 `./target/release/folder-tidy`。
 
-### 2. 建立規則檔
+## 開始使用
 
-規則檔必須先存在（`serve` 讀不到檔案會直接報錯）。網頁介面裡改的設定會存回這個檔案。
+### 1. 建立規則檔
 
-建議放在 `.local/`，這個資料夾已列在 `.gitignore`，你自己的規則和搬移紀錄不會被 commit：
+規則檔必須先存在（`serve` 讀不到檔案會直接報錯）。網頁介面裡改的設定會存回這個檔案。放哪裡都可以，以下用 `~/.config/folder-tidy/`：
 
 ```sh
-mkdir -p .local
-cat > .local/rules.toml <<'TOML'
+mkdir -p ~/.config/folder-tidy
+cat > ~/.config/folder-tidy/rules.toml <<'TOML'
 ai_exclude = ["~/Documents/tax", "*.key"]
 
 [[category]]
@@ -70,10 +93,10 @@ TOML
 
 完整格式見下方〈規則檔格式〉。
 
-### 3. 啟動網頁介面
+### 2. 啟動網頁介面
 
 ```sh
-./target/release/folder-tidy serve --config .local/rules.toml --log .local/moves.json
+folder-tidy serve --config ~/.config/folder-tidy/rules.toml --log ~/.config/folder-tidy/moves.json
 ```
 
 打開 <http://127.0.0.1:8737/>。
@@ -154,10 +177,10 @@ date = { newer_than_days = 7 }            # 最近 7 天內修改
 不開網頁介面，也可以直接用指令：
 
 ```sh
-folder-tidy scan  ~/Desktop --config .local/rules.toml                          # 每個檔案的分類（JSON），不搬
-folder-tidy plan  ~/Desktop --config .local/rules.toml                          # 預演搬移計畫（JSON），不搬
-folder-tidy apply ~/Desktop --config .local/rules.toml --log .local/moves.json --yes  # 真的搬
-folder-tidy undo  --log .local/moves.json                                       # 復原最近一次 apply
+folder-tidy scan  ~/Desktop --config ~/.config/folder-tidy/rules.toml  # 每個檔案的分類（JSON），不搬
+folder-tidy plan  ~/Desktop --config ~/.config/folder-tidy/rules.toml  # 預演搬移計畫（JSON），不搬
+folder-tidy apply ~/Desktop --config ~/.config/folder-tidy/rules.toml --log ~/.config/folder-tidy/moves.json --yes  # 真的搬
+folder-tidy undo  --log ~/.config/folder-tidy/moves.json  # 復原最近一次 apply
 ```
 
 - `scan`、`plan`、`apply` 加 `--recursive` 會包含子資料夾。
