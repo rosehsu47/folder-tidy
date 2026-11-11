@@ -6,6 +6,10 @@ Organize a messy Mac folder into category folders by rules. You always see
 the plan first, nothing moves until you confirm, and every move can be
 undone. The UI is in Traditional Chinese.
 
+![整理預覽：檔案依目的地分組，可以逐一改目的地](docs/images/preview.png)
+
+![確認後，檔案搬進各分類資料夾](docs/images/moving.png)
+
 ## 功能
 
 - **規則分類**：依副檔名、檔名關鍵字、修改日期（固定日期區間，或「最近 N 天內」「超過 N 天」）分類。分類就是目標資料夾，可以多層（`工作/報表`）。規則由上到下比對，第一個符合的分類勝出。
@@ -25,26 +29,15 @@ undone. The UI is in Traditional Chinese.
 
 ## 安裝
 
-一個執行檔同時支援 Apple 晶片和 Intel Mac。
-
 ### 用 Homebrew（建議）
 
 ```sh
 brew install rosehsu47/tap/folder-tidy
 ```
 
-### 直接下載
+Homebrew 會從這個 repo 公開的原始碼現場編譯（自動裝好 Rust），不會下載預先編譯好的執行檔。需要最新版的 Xcode Command Line Tools；太舊的話 Homebrew 會直接拒絕安裝，並告訴你怎麼更新。
 
-到 [Releases](https://github.com/rosehsu47/folder-tidy/releases) 下載 `folder-tidy-<版本>-macos-universal.tar.gz`，然後：
-
-```sh
-tar -xzf folder-tidy-*-macos-universal.tar.gz
-cd folder-tidy-*-macos-universal
-xattr -d com.apple.quarantine folder-tidy   # 第一次執行前先做，見下方說明
-sudo mv folder-tidy /usr/local/bin/
-```
-
-這個執行檔沒有經過 Apple 公證（notarization）。用瀏覽器下載的檔案會被 macOS 標記，直接執行會跳出「無法打開」的視窗，所以要在**第一次執行之前**用上面的 `xattr` 指令拿掉標記。如果已經被擋過一次，重新解壓縮一份、先跑 `xattr` 再執行。用 Homebrew 或 `curl` 下載就沒有這個問題。
+目前不提供預先編譯的下載檔：執行檔沒有經過 Apple 公證，要用的話必須關掉 macOS 的安全檢查，所以寧可請你從原始碼編譯。
 
 ### 從原始碼編譯
 
@@ -202,6 +195,10 @@ cargo test
 ```
 
 測試只在暫存資料夾和測試用檔案上跑，不會動到你的檔案，不會呼叫真的 `claude` CLI，也不會開資料夾選擇視窗。
+
+## 關於這個 repo 的歷史
+
+這個專案先在私人 repo 開發，公開時從一份乾淨的副本重新建立，以去掉開發過程中的個人資料（本機路徑、範例檔名），所以公開的歷史從一個大的 initial commit 開始。
 
 ## License
 
